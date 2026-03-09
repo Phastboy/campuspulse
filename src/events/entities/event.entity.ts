@@ -142,7 +142,6 @@ export class Event {
    * Validate that the event date is not in the past
    */
   @BeforeCreate()
-  @BeforeUpdate()
   validateDates() {
     if (this.date < new Date()) {
       throw new Error('Event date and time cannot be in the past');
