@@ -15,7 +15,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiBody
+  ApiBody,
 } from '@nestjs/swagger';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -26,14 +26,14 @@ import { Event } from './entities/event.entity';
 @ApiTags('events')
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) { }
+  constructor(private readonly eventsService: EventsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new event' })
   @ApiResponse({
     status: 201,
     description: 'Event successfully created',
-    type: Event
+    type: Event,
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiBody({ type: CreateEventDto })
@@ -50,11 +50,13 @@ export class EventsController {
     schema: {
       properties: {
         items: { type: 'array', items: { $ref: '#/components/schemas/Event' } },
-        total: { type: 'number' }
-      }
-    }
+        total: { type: 'number' },
+      },
+    },
   })
-  findAll(@Query() query: EventQueryDto): Promise<{ items: Event[]; total: number }> {
+  findAll(
+    @Query() query: EventQueryDto,
+  ): Promise<{ items: Event[]; total: number }> {
     return this.eventsService.findAll(query);
   }
 
@@ -63,7 +65,7 @@ export class EventsController {
   @ApiResponse({
     status: 200,
     description: 'Returns upcoming events',
-    type: [Event]
+    type: [Event],
   })
   findUpcomingThisWeek(): Promise<Event[]> {
     return this.eventsService.findUpcomingThisWeek();
@@ -73,7 +75,7 @@ export class EventsController {
   @ApiOperation({ summary: 'Get event statistics by category' })
   @ApiResponse({
     status: 200,
-    description: 'Returns event statistics'
+    description: 'Returns event statistics',
   })
   getStats(): Promise<any> {
     return this.eventsService.getEventStats();
@@ -81,7 +83,11 @@ export class EventsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single event by ID' })
-  @ApiParam({ name: 'id', description: 'Event UUID', example: '123e4567-e89b-12d3-a456-426614174000' })
+  @ApiParam({
+    name: 'id',
+    description: 'Event UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
   @ApiResponse({ status: 200, description: 'Returns the event', type: Event })
   @ApiResponse({ status: 404, description: 'Event not found' })
   findOne(@Param('id') id: string): Promise<Event> {
@@ -91,12 +97,16 @@ export class EventsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update an event' })
   @ApiParam({ name: 'id', description: 'Event UUID' })
-  @ApiResponse({ status: 200, description: 'Event updated successfully', type: Event })
+  @ApiResponse({
+    status: 200,
+    description: 'Event updated successfully',
+    type: Event,
+  })
   @ApiResponse({ status: 404, description: 'Event not found' })
   @ApiBody({ type: UpdateEventDto })
   update(
     @Param('id') id: string,
-    @Body() updateEventDto: UpdateEventDto
+    @Body() updateEventDto: UpdateEventDto,
   ): Promise<Event> {
     return this.eventsService.update(id, updateEventDto);
   }

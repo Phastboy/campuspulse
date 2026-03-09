@@ -1,12 +1,26 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsInt, Min, IsDateString, IsBoolean, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsInt,
+  Min,
+  IsDateString,
+  IsBoolean,
+  IsString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { EventCategory, EventStatus, LocationTag, PricingTag, RsvpStatus } from '../entities/event.entity';
+import {
+  EventCategory,
+  EventStatus,
+  LocationTag,
+  PricingTag,
+  RsvpStatus,
+} from '../entities/event.entity';
 
 export class EventQueryDto {
   @ApiPropertyOptional({
     enum: EventCategory,
-    description: 'Filter by event category'
+    description: 'Filter by event category',
   })
   @IsEnum(EventCategory)
   @IsOptional()
@@ -14,7 +28,7 @@ export class EventQueryDto {
 
   @ApiPropertyOptional({
     enum: EventStatus,
-    description: 'Filter by event status'
+    description: 'Filter by event status',
   })
   @IsEnum(EventStatus)
   @IsOptional()
@@ -22,7 +36,7 @@ export class EventQueryDto {
 
   @ApiPropertyOptional({
     enum: LocationTag,
-    description: 'Filter by location type'
+    description: 'Filter by location type',
   })
   @IsEnum(LocationTag)
   @IsOptional()
@@ -30,7 +44,7 @@ export class EventQueryDto {
 
   @ApiPropertyOptional({
     description: 'Filter events from this date (ISO format)',
-    example: '2026-03-01'
+    example: '2026-03-01',
   })
   @IsDateString()
   @IsOptional()
@@ -38,7 +52,7 @@ export class EventQueryDto {
 
   @ApiPropertyOptional({
     description: 'Filter events until this date (ISO format)',
-    example: '2026-03-31'
+    example: '2026-03-31',
   })
   @IsDateString()
   @IsOptional()
@@ -47,7 +61,7 @@ export class EventQueryDto {
   @ApiPropertyOptional({
     description: 'Number of items per page',
     minimum: 1,
-    default: 20
+    default: 20,
   })
   @Type(() => Number)
   @IsInt()
@@ -58,7 +72,7 @@ export class EventQueryDto {
   @ApiPropertyOptional({
     description: 'Number of items to skip',
     minimum: 0,
-    default: 0
+    default: 0,
   })
   @Type(() => Number)
   @IsInt()
@@ -69,7 +83,7 @@ export class EventQueryDto {
   @ApiPropertyOptional({
     description: 'Field to sort by',
     enum: ['date', 'views', 'title'],
-    default: 'date'
+    default: 'date',
   })
   @IsEnum(['date', 'views', 'title'])
   @IsOptional()
@@ -78,18 +92,24 @@ export class EventQueryDto {
   @ApiPropertyOptional({
     description: 'Sort order',
     enum: ['asc', 'desc'],
-    default: 'asc'
+    default: 'asc',
   })
   @IsEnum(['asc', 'desc'])
   @IsOptional()
   sortOrder?: 'asc' | 'desc' = 'asc';
 
-  @ApiPropertyOptional({ enum: PricingTag, description: 'Filter by pricing type' })
+  @ApiPropertyOptional({
+    enum: PricingTag,
+    description: 'Filter by pricing type',
+  })
   @IsEnum(PricingTag)
   @IsOptional()
   pricingTag?: PricingTag;
 
-  @ApiPropertyOptional({ enum: RsvpStatus, description: 'Filter by RSVP requirement type' })
+  @ApiPropertyOptional({
+    enum: RsvpStatus,
+    description: 'Filter by RSVP requirement type',
+  })
   @IsEnum(RsvpStatus)
   @IsOptional()
   rsvpStatus?: RsvpStatus;

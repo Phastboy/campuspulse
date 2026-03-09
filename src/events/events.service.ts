@@ -13,7 +13,7 @@ export class EventsService {
     @InjectRepository(Event)
     private readonly eventRepository: EntityRepository<Event>,
     private readonly em: EntityManager,
-  ) { }
+  ) {}
 
   async create(createEventDto: CreateEventDto): Promise<Event> {
     // Create entity instance first, then assign
@@ -31,7 +31,9 @@ export class EventsService {
     return event;
   }
 
-  async findAll(query: EventQueryDto): Promise<{ items: Event[]; total: number }> {
+  async findAll(
+    query: EventQueryDto,
+  ): Promise<{ items: Event[]; total: number }> {
     const qb = this.eventRepository.createQueryBuilder('e');
 
     // Apply filters
@@ -99,15 +101,18 @@ export class EventsService {
     today.setHours(0, 0, 0, 0);
     nextWeek.setHours(23, 59, 59, 999);
 
-    return await this.eventRepository.find({
-      date: {
-        $gte: today,
-        $lte: nextWeek,
+    return await this.eventRepository.find(
+      {
+        date: {
+          $gte: today,
+          $lte: nextWeek,
+        },
+        status: EventStatus.LIVE,
       },
-      status: EventStatus.LIVE,
-    }, {
-      orderBy: { date: 'ASC' },
-    });
+      {
+        orderBy: { date: 'ASC' },
+      },
+    );
   }
 
   async update(id: string, updateEventDto: UpdateEventDto): Promise<Event> {

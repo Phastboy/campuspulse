@@ -7,7 +7,7 @@ import type { EventStatus } from '../entities/event.entity';
 export class UpdateEventDto extends PartialType(CreateEventDto) {
   @ApiPropertyOptional({
     enum: ['pending', 'live', 'cancelled', 'postponed'],
-    description: 'Event status'
+    description: 'Event status',
   })
   @IsEnum(['pending', 'live', 'cancelled', 'postponed'])
   @IsOptional()
