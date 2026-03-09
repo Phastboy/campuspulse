@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';
-import { Event } from './entities/event.entity';
+import { Event, EventStatus } from './entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventQueryDto } from './dto/event-query.dto';
@@ -104,7 +104,7 @@ export class EventsService {
         $gte: today,
         $lte: nextWeek,
       },
-      status: 'live',
+      status: EventStatus.LIVE,
     }, {
       orderBy: { date: 'ASC' },
     });

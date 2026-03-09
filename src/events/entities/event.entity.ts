@@ -4,24 +4,38 @@ import {
   Property,
   Enum,
   Index,
+  Unique,
   BeforeCreate,
   BeforeUpdate
 } from '@mikro-orm/core';
 import { ApiProperty } from '@nestjs/swagger';
+import slugify from 'slugify';
+import crypto from 'crypto';
 
-export type EventCategory = 'tech' | 'academic' | 'entertainment' | 'sports' | 'welfare' | 'online' | 'other';
-export type PricingTag = 'free' | 'paid' | 'conditional';
-export type LocationTag = 'on-campus' | 'off-campus' | 'online';
-export type RSVPStatus = 'open-entry' | 'register' | 'buy-ticket';
-export type EventStatus = 'pending' | 'live' | 'cancelled' | 'postponed';
+import {
+  EventCategory,
+  EventStatus,
+  LocationTag,
+  PricingTag,
+  RsvpStatus,
+} from '../../common/enums';
+export * from '../../common/enums'
 
-@Entity()
-@Index({ properties: ['date', 'status'] })
-@Index({ properties: ['category', 'date'] })
+@Entity({ tableName: 'events' })
+@Index({ properties: ['status', 'date'] }) // upcoming events
+@Index({ properties: ['category', 'date'] }) // category browsing
+@Index({ properties: ['deletedAt'] }) // soft delete queries
+@Index({ properties: ['date', 'views'] }) // trending / homepage
+@Unique({ properties: ['date', 'venue', 'category'] }) // deduplication
 export class Event {
+
   @PrimaryKey({ type: 'uuid', defaultRaw: 'uuid_generate_v4()' })
   @ApiProperty({ description: 'Unique event identifier' })
   id!: string;
+
+  @Property({ unique: true })
+  @ApiProperty({ description: 'SEO friendly event slug' })
+  slug!: string;
 
   @Property({ length: 200 })
   @ApiProperty({ description: 'Event title', maxLength: 200 })
@@ -31,11 +45,8 @@ export class Event {
   @ApiProperty({ description: 'Detailed event description', required: false })
   description?: string;
 
-  @Enum(() => ['tech', 'academic', 'entertainment', 'sports', 'welfare', 'online', 'other'])
-  @ApiProperty({
-    enum: ['tech', 'academic', 'entertainment', 'sports', 'welfare', 'online', 'other'],
-    description: 'Event category'
-  })
+  @Enum(() => EventCategory)
+  @ApiProperty({ enum: EventCategory, description: 'Event category' })
   category!: EventCategory;
 
   @Property()
@@ -46,30 +57,21 @@ export class Event {
   @ApiProperty({ description: 'Event venue/location' })
   venue!: string;
 
-  @Enum(() => ['on-campus', 'off-campus', 'online'])
-  @ApiProperty({
-    enum: ['on-campus', 'off-campus', 'online'],
-    description: 'Location type'
-  })
+  @Enum(() => LocationTag)
+  @ApiProperty({ enum: LocationTag, description: 'Location type' })
   locationTag!: LocationTag;
 
-  @Enum(() => ['free', 'paid', 'conditional'])
-  @ApiProperty({
-    enum: ['free', 'paid', 'conditional'],
-    description: 'Pricing type'
-  })
+  @Enum(() => PricingTag)
+  @ApiProperty({ enum: PricingTag, description: 'Pricing type' })
   pricingTag!: PricingTag;
 
   @Property({ type: 'text', nullable: true })
   @ApiProperty({ description: 'Detailed pricing information', required: false })
   pricingDetail?: string;
 
-  @Enum(() => ['open-entry', 'register', 'buy-ticket'])
-  @ApiProperty({
-    enum: ['open-entry', 'register', 'buy-ticket'],
-    description: 'RSVP requirement type'
-  })
-  rsvpStatus!: RSVPStatus;
+  @Enum(() => RsvpStatus)
+  @ApiProperty({ enum: RsvpStatus, description: 'RSVP requirement type' })
+  rsvpStatus!: RsvpStatus;
 
   @Property({ nullable: true })
   @ApiProperty({ description: 'RSVP/registration link', required: false })
@@ -83,17 +85,25 @@ export class Event {
   @ApiProperty({ description: 'Organizer name', required: false })
   organizer?: string;
 
+  @Property({ nullable: true })
+  @ApiProperty({ description: 'Cover image URL', required: false })
+  coverImageUrl?: string;
+
   @Property()
   @ApiProperty({ description: 'Source of the event (manual, crowdsourced, etc.)' })
   source!: string;
 
-  @Enum(() => ['pending', 'live', 'cancelled', 'postponed'])
-  @ApiProperty({
-    enum: ['pending', 'live', 'cancelled', 'postponed'],
-    description: 'Event status',
-    default: 'pending'
-  })
-  status: EventStatus = 'pending';
+  @Property({ unique: true })
+  @ApiProperty({ description: 'Fingerprint for deduplication' })
+  fingerprint!: string;
+
+  @Enum(() => EventStatus)
+  @ApiProperty({ enum: EventStatus, description: 'Event status', default: EventStatus.LIVE })
+  status: EventStatus = EventStatus.LIVE;
+
+  @Property({ default: 0 })
+  @ApiProperty({ description: 'Number of views' })
+  views: number = 0;
 
   @Property({ onCreate: () => new Date() })
   @ApiProperty({ description: 'Creation timestamp' })
@@ -103,11 +113,31 @@ export class Event {
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date = new Date();
 
+  @Property({ nullable: true })
+  @ApiProperty({ description: 'Soft delete timestamp', required: false })
+  deletedAt?: Date;
+
+  /**
+   * Normalize venue, generate slug and deduplication fingerprint
+   */
+  @BeforeCreate()
+  generateMetadata() {
+    this.venue = this.venue.trim().toLowerCase().replace(/\s+/g, ' ');
+    this.slug = slugify(this.title, { lower: true, strict: true });
+
+    // Deduplication fingerprint: date + venue + category
+    const raw = [this.date.toISOString(), this.venue, this.category].join('|');
+    this.fingerprint = crypto.createHash('sha256').update(raw).digest('hex');
+  }
+
+  /**
+   * Validate that the event date is not in the past
+   */
   @BeforeCreate()
   @BeforeUpdate()
   validateDates() {
     if (this.date < new Date()) {
-      throw new Error('Event date cannot be in the past');
+      throw new Error('Event date and time cannot be in the past');
     }
   }
 }
