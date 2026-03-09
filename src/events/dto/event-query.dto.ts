@@ -1,16 +1,32 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsInt, Min, IsDateString } from 'class-validator';
+import { IsEnum, IsOptional, IsInt, Min, IsDateString, IsBoolean, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import type { EventCategory, LocationTag, EventStatus } from '../entities/event.entity';
+import { EventCategory, EventStatus, LocationTag, PricingTag, RsvpStatus } from '../entities/event.entity';
 
 export class EventQueryDto {
   @ApiPropertyOptional({
-    enum: ['tech', 'academic', 'entertainment', 'sports', 'welfare', 'online', 'other'],
-    description: 'Filter by category'
+    enum: EventCategory,
+    description: 'Filter by event category'
   })
-  @IsEnum(['tech', 'academic', 'entertainment', 'sports', 'welfare', 'online', 'other'])
+  @IsEnum(EventCategory)
   @IsOptional()
   category?: EventCategory;
+
+  @ApiPropertyOptional({
+    enum: EventStatus,
+    description: 'Filter by event status'
+  })
+  @IsEnum(EventStatus)
+  @IsOptional()
+  status?: EventStatus;
+
+  @ApiPropertyOptional({
+    enum: LocationTag,
+    description: 'Filter by location type'
+  })
+  @IsEnum(LocationTag)
+  @IsOptional()
+  location?: LocationTag;
 
   @ApiPropertyOptional({
     description: 'Filter events from this date (ISO format)',
@@ -27,22 +43,6 @@ export class EventQueryDto {
   @IsDateString()
   @IsOptional()
   toDate?: string;
-
-  @ApiPropertyOptional({
-    enum: ['pending', 'live', 'cancelled', 'postponed'],
-    description: 'Filter by status'
-  })
-  @IsEnum(['pending', 'live', 'cancelled', 'postponed'])
-  @IsOptional()
-  status?: EventStatus;
-
-  @ApiPropertyOptional({
-    enum: ['on-campus', 'off-campus', 'online'],
-    description: 'Filter by location type'
-  })
-  @IsEnum(['on-campus', 'off-campus', 'online'])
-  @IsOptional()
-  location?: LocationTag;
 
   @ApiPropertyOptional({
     description: 'Number of items per page',
@@ -65,4 +65,63 @@ export class EventQueryDto {
   @Min(0)
   @IsOptional()
   offset?: number = 0;
+
+  @ApiPropertyOptional({
+    description: 'Field to sort by',
+    enum: ['date', 'views', 'title'],
+    default: 'date'
+  })
+  @IsEnum(['date', 'views', 'title'])
+  @IsOptional()
+  sortBy?: 'date' | 'views' | 'title' = 'date';
+
+  @ApiPropertyOptional({
+    description: 'Sort order',
+    enum: ['asc', 'desc'],
+    default: 'asc'
+  })
+  @IsEnum(['asc', 'desc'])
+  @IsOptional()
+  sortOrder?: 'asc' | 'desc' = 'asc';
+
+  @ApiPropertyOptional({ enum: PricingTag, description: 'Filter by pricing type' })
+  @IsEnum(PricingTag)
+  @IsOptional()
+  pricingTag?: PricingTag;
+
+  @ApiPropertyOptional({ enum: RsvpStatus, description: 'Filter by RSVP requirement type' })
+  @IsEnum(RsvpStatus)
+  @IsOptional()
+  rsvpStatus?: RsvpStatus;
+
+  @ApiPropertyOptional({ description: 'Search events by title or description' })
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by organizer name' })
+  @IsString()
+  @IsOptional()
+  organizer?: string;
+
+  // === Views / Popularity ===
+  @ApiPropertyOptional({ description: 'Minimum number of views' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  minViews?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum number of views' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxViews?: number;
+
+  // === Soft Delete ===
+  @ApiPropertyOptional({ description: 'Include soft-deleted events' })
+  @IsBoolean()
+  @IsOptional()
+  includeDeleted?: boolean;
 }
