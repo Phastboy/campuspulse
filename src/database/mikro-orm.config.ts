@@ -29,6 +29,6 @@ const config: Options = {
     safe: true,
     emit: 'ts',
   },
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
 };
 export default config;
