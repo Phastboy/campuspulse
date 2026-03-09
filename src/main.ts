@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConsoleLogger, INestApplication, Logger } from '@nestjs/common';
+import { ConsoleLogger, INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerSetup } from './swagger.config';
 import { ConfigService } from '@nestjs/config';
 import * as os from 'os';
@@ -17,7 +17,20 @@ async function bootstrap() {
   const globalPrefix = configService.get<string>('GLOBAL_PREFIX', 'api');
   app.setGlobalPrefix(globalPrefix);
 
+
+  // Global validation pipe
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+  }));
   SwaggerSetup.register(app, globalPrefix);
+
+  // Enable CORS
+  app.enableCors();
 
   const port = configService.get<number>('PORT', 3000);
   await app.listen(port);

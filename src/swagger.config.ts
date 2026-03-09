@@ -27,9 +27,10 @@ export class SwaggerSetup {
     );
 
     const builder = new DocumentBuilder()
-      .setTitle('Service API')
-      .setDescription('API documentation')
+      .setTitle('CampusPulse API')
+      .setDescription('Campus Event Aggregation Platform API')
       .setVersion('1.0')
+      .addTag('events', 'Event management endpoints')
       .addBearerAuth(
         {
           type: 'http',
