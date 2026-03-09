@@ -37,5 +37,5 @@ export enum SubmissionStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
   FLAGGED = 'flagged', // possible duplicate — routed to exceptions queue
-  MERGED = 'merged',   // merged into an existing event
+  MERGED = 'merged', // merged into an existing event
 }

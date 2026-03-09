@@ -6,7 +6,7 @@ import {
   Index,
   Unique,
   BeforeCreate,
-  BeforeUpdate
+  BeforeUpdate,
 } from '@mikro-orm/core';
 import { ApiProperty } from '@nestjs/swagger';
 import slugify from 'slugify';
@@ -19,7 +19,7 @@ import {
   PricingTag,
   RsvpStatus,
 } from '../../common/enums';
-export * from '../../common/enums'
+export * from '../../common/enums';
 
 @Entity({ tableName: 'events' })
 @Index({ properties: ['status', 'date'] }) // upcoming events
@@ -28,7 +28,6 @@ export * from '../../common/enums'
 @Index({ properties: ['date', 'views'] }) // trending / homepage
 @Unique({ properties: ['date', 'venue', 'category'] }) // deduplication
 export class Event {
-
   @PrimaryKey({ type: 'uuid', defaultRaw: 'uuid_generate_v4()' })
   @ApiProperty({ description: 'Unique event identifier' })
   id!: string;
@@ -50,7 +49,10 @@ export class Event {
   category!: EventCategory;
 
   @Property()
-  @ApiProperty({ description: 'Event date and time', example: '2026-03-20T14:00:00Z' })
+  @ApiProperty({
+    description: 'Event date and time',
+    example: '2026-03-20T14:00:00Z',
+  })
   date!: Date;
 
   @Property()
@@ -90,7 +92,9 @@ export class Event {
   coverImageUrl?: string;
 
   @Property()
-  @ApiProperty({ description: 'Source of the event (manual, crowdsourced, etc.)' })
+  @ApiProperty({
+    description: 'Source of the event (manual, crowdsourced, etc.)',
+  })
   source!: string;
 
   @Property({ unique: true })
@@ -98,7 +102,11 @@ export class Event {
   fingerprint!: string;
 
   @Enum(() => EventStatus)
-  @ApiProperty({ enum: EventStatus, description: 'Event status', default: EventStatus.LIVE })
+  @ApiProperty({
+    enum: EventStatus,
+    description: 'Event status',
+    default: EventStatus.LIVE,
+  })
   status: EventStatus = EventStatus.LIVE;
 
   @Property({ default: 0 })

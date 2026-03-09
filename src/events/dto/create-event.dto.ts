@@ -7,16 +7,21 @@ import {
   IsUrl,
   MinLength,
   MaxLength,
-  IsNotEmpty
+  IsNotEmpty,
 } from 'class-validator';
-import type { EventCategory, PricingTag, LocationTag, RsvpStatus } from '../entities/event.entity';
+import type {
+  EventCategory,
+  PricingTag,
+  LocationTag,
+  RsvpStatus,
+} from '../entities/event.entity';
 
 export class CreateEventDto {
   @ApiProperty({
     description: 'Event title',
     minLength: 3,
     maxLength: 200,
-    example: 'Tech Summit 2026'
+    example: 'Tech Summit 2026',
   })
   @IsString()
   @IsNotEmpty()
@@ -26,7 +31,7 @@ export class CreateEventDto {
 
   @ApiPropertyOptional({
     description: 'Detailed event description',
-    example: 'Annual technology summit featuring industry leaders...'
+    example: 'Annual technology summit featuring industry leaders...',
   })
   @IsString()
   @IsOptional()
@@ -34,23 +39,39 @@ export class CreateEventDto {
   description?: string;
 
   @ApiProperty({
-    enum: ['tech', 'academic', 'entertainment', 'sports', 'welfare', 'online', 'other'],
+    enum: [
+      'tech',
+      'academic',
+      'entertainment',
+      'sports',
+      'welfare',
+      'online',
+      'other',
+    ],
     description: 'Event category',
-    example: 'tech'
+    example: 'tech',
   })
-  @IsEnum(['tech', 'academic', 'entertainment', 'sports', 'welfare', 'online', 'other'])
+  @IsEnum([
+    'tech',
+    'academic',
+    'entertainment',
+    'sports',
+    'welfare',
+    'online',
+    'other',
+  ])
   category!: EventCategory;
 
   @ApiProperty({
     description: 'Event date and time (ISO format)',
-    example: '2026-03-20T14:00:00Z'
+    example: '2026-03-20T14:00:00Z',
   })
   @IsDateString()
   date!: string;
 
   @ApiProperty({
     description: 'Event venue',
-    example: 'ACE Conference Hall, OAU'
+    example: 'ACE Conference Hall, OAU',
   })
   @IsString()
   @MinLength(3)
@@ -59,7 +80,7 @@ export class CreateEventDto {
   @ApiProperty({
     enum: ['on-campus', 'off-campus', 'online'],
     description: 'Location type',
-    example: 'on-campus'
+    example: 'on-campus',
   })
   @IsEnum(['on-campus', 'off-campus', 'online'])
   locationTag!: LocationTag;
@@ -67,14 +88,14 @@ export class CreateEventDto {
   @ApiProperty({
     enum: ['free', 'paid', 'conditional'],
     description: 'Pricing type',
-    example: 'free'
+    example: 'free',
   })
   @IsEnum(['free', 'paid', 'conditional'])
   pricingTag!: PricingTag;
 
   @ApiPropertyOptional({
     description: 'Detailed pricing information',
-    example: 'Free for students, N2000 for non-students'
+    example: 'Free for students, N2000 for non-students',
   })
   @IsString()
   @IsOptional()
@@ -83,14 +104,14 @@ export class CreateEventDto {
   @ApiProperty({
     enum: ['open-entry', 'register', 'buy-ticket'],
     description: 'RSVP requirement',
-    example: 'register'
+    example: 'register',
   })
   @IsEnum(['open-entry', 'register', 'buy-ticket'])
   rsvpStatus!: RsvpStatus;
 
   @ApiPropertyOptional({
     description: 'RSVP/registration link',
-    example: 'https://forms.gle/example'
+    example: 'https://forms.gle/example',
   })
   @IsUrl()
   @IsOptional()
@@ -98,7 +119,7 @@ export class CreateEventDto {
 
   @ApiPropertyOptional({
     description: 'Contact information',
-    example: 'John Doe: 08012345678'
+    example: 'John Doe: 08012345678',
   })
   @IsString()
   @IsOptional()
@@ -106,7 +127,7 @@ export class CreateEventDto {
 
   @ApiPropertyOptional({
     description: 'Organizer name',
-    example: 'NACOS OAU'
+    example: 'NACOS OAU',
   })
   @IsString()
   @IsOptional()
@@ -115,7 +136,7 @@ export class CreateEventDto {
   @ApiProperty({
     description: 'Event source',
     example: 'manual',
-    default: 'manual'
+    default: 'manual',
   })
   @IsString()
   source: string = 'manual';
