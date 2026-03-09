@@ -9,7 +9,7 @@ import {
   MaxLength,
   IsNotEmpty
 } from 'class-validator';
-import type { EventCategory, PricingTag, LocationTag, RSVPStatus } from '../entities/event.entity';
+import type { EventCategory, PricingTag, LocationTag, RsvpStatus } from '../entities/event.entity';
 
 export class CreateEventDto {
   @ApiProperty({
@@ -86,7 +86,7 @@ export class CreateEventDto {
     example: 'register'
   })
   @IsEnum(['open-entry', 'register', 'buy-ticket'])
-  rsvpStatus!: RSVPStatus;
+  rsvpStatus!: RsvpStatus;
 
   @ApiPropertyOptional({
     description: 'RSVP/registration link',
