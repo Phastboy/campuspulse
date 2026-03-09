@@ -13,7 +13,7 @@ export class EventsService {
     @InjectRepository(Event)
     private readonly eventRepository: EntityRepository<Event>,
     private readonly em: EntityManager,
-  ) {}
+  ) { }
 
   async create(createEventDto: CreateEventDto): Promise<Event> {
     // Create entity instance first, then assign
@@ -23,8 +23,6 @@ export class EventsService {
     Object.assign(event, {
       ...createEventDto,
       date: new Date(createEventDto.date),
-      // status defaults to 'pending' in entity
-      // createdAt/updatedAt are handled by entity hooks
     });
 
     await this.em.persist(event).flush();
@@ -138,7 +136,7 @@ export class EventsService {
   async getEventStats(): Promise<any[]> {
     const knex = this.em.getKnex();
 
-    const stats = await knex('event')
+    const stats = await knex('events')
       .select('category')
       .count('id as count')
       .min('date as next_event')
