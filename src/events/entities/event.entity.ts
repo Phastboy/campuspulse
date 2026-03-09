@@ -125,8 +125,8 @@ export class Event {
     this.venue = this.venue.trim().toLowerCase().replace(/\s+/g, ' ');
     this.slug = slugify(this.title, { lower: true, strict: true });
 
-    // Deduplication fingerprint: date + venue + category
-    const raw = [this.date.toISOString(), this.venue, this.category].join('|');
+    // Deduplication fingerprint: date + venue
+    const raw = [this.date.toISOString(), this.venue].join('|');
     this.fingerprint = crypto.createHash('sha256').update(raw).digest('hex');
   }
 
