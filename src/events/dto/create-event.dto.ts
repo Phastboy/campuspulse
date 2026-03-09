@@ -9,7 +9,7 @@ import {
   MaxLength,
   IsNotEmpty,
 } from 'class-validator';
-import type {
+import {
   EventCategory,
   PricingTag,
   LocationTag,
@@ -39,27 +39,11 @@ export class CreateEventDto {
   description?: string;
 
   @ApiProperty({
-    enum: [
-      'tech',
-      'academic',
-      'entertainment',
-      'sports',
-      'welfare',
-      'online',
-      'other',
-    ],
+    enum: EventCategory,
     description: 'Event category',
-    example: 'tech',
+    example: EventCategory.TECH,
   })
-  @IsEnum([
-    'tech',
-    'academic',
-    'entertainment',
-    'sports',
-    'welfare',
-    'online',
-    'other',
-  ])
+  @IsEnum(EventCategory)
   category!: EventCategory;
 
   @ApiProperty({
@@ -78,19 +62,19 @@ export class CreateEventDto {
   venue!: string;
 
   @ApiProperty({
-    enum: ['on-campus', 'off-campus', 'online'],
+    enum: LocationTag,
     description: 'Location type',
-    example: 'on-campus',
+    example: LocationTag.ON_CAMPUS,
   })
-  @IsEnum(['on-campus', 'off-campus', 'online'])
+  @IsEnum(LocationTag)
   locationTag!: LocationTag;
 
   @ApiProperty({
-    enum: ['free', 'paid', 'conditional'],
+    enum: PricingTag,
     description: 'Pricing type',
-    example: 'free',
+    example: PricingTag.FREE,
   })
-  @IsEnum(['free', 'paid', 'conditional'])
+  @IsEnum(PricingTag)
   pricingTag!: PricingTag;
 
   @ApiPropertyOptional({
@@ -102,11 +86,11 @@ export class CreateEventDto {
   pricingDetail?: string;
 
   @ApiProperty({
-    enum: ['open-entry', 'register', 'buy-ticket'],
+    enum: RsvpStatus,
     description: 'RSVP requirement',
-    example: 'register',
+    example: RsvpStatus.REGISTER,
   })
-  @IsEnum(['open-entry', 'register', 'buy-ticket'])
+  @IsEnum(RsvpStatus)
   rsvpStatus!: RsvpStatus;
 
   @ApiPropertyOptional({
