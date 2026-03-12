@@ -64,8 +64,24 @@ export class IngestionService {
       };
     }
 
+    // Guard: don't create if an exact match exists, regardless of user's decision
+    const submission = data.toEventSubmission();
+    const similar = await this.similarityEngine.findSimilar(submission);
+    const exactMatch = similar.find((s) => s.score === 1.0);
+
+    if (exactMatch) {
+      this.logger.warn(
+        `confirm("new") rejected - exact match exists: ${exactMatch.event.id}`,
+      );
+      return {
+        action: 'linked',
+        eventId: exactMatch.event.id,
+        message: 'Exact duplicate detected; linked to existing event',
+      };
+    }
+
     return this.em.transactional(async (fork) => {
-      const event = await this.createEvent(data.toEventSubmission(), fork);
+      const event = await this.createEvent(submission, fork);
       return {
         action: 'created',
         eventId: event.id,

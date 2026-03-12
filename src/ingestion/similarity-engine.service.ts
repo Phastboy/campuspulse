@@ -23,6 +23,7 @@ export interface ScoredEvent {
 @Injectable()
 export class SimilarityEngine {
   private readonly logger = new Logger(SimilarityEngine.name);
+  private readonly CONCURRENCY_LIMIT = 10;
 
   constructor(
     @InjectRepository(Event)
@@ -33,6 +34,28 @@ export class SimilarityEngine {
   ) {
     this.logger.log(`SimilarityEngine initialized with ${rules.length} rules`);
     this.logger.debug('Rules loaded: ' + rules.map((r) => r.name).join(', '));
+  }
+
+  private async mapConcurrent<T, R>(
+    items: T[],
+    fn: (item: T) => Promise<R>,
+    concurrency: number = this.CONCURRENCY_LIMIT,
+  ): Promise<R[]> {
+    const results: R[] = [];
+
+    for (let i = 0; i < items.length; i += concurrency) {
+      const chunk = items.slice(i, i + concurrency);
+      const chunkResults = await Promise.all(chunk.map(fn));
+      results.push(...chunkResults);
+
+      if (items.length > 100) {
+        this.logger.debug(
+          `Processed ${Math.min(i + concurrency, items.length)}/${items.length} candidates`,
+        );
+      }
+    }
+
+    return results;
   }
 
   async findSimilar(submission: EventSubmission): Promise<ScoredEvent[]> {
@@ -73,18 +96,19 @@ export class SimilarityEngine {
         `Candidate IDs: ${candidates.map((c) => c.id).join(', ')}`,
       );
 
-      const scored = candidates
-        .map((candidate) => {
-          try {
-            return this.scoreCandidate(candidate, submission);
-          } catch (error) {
-            const err = error as Error;
-            this.logger.error(`Failed to score candidate ${candidate.id}`);
-            this.logger.error(err.message);
-            this.logger.error(err.stack);
-            return null;
-          }
-        })
+      const scored = await this.mapConcurrent(candidates, async (candidate) => {
+        try {
+          return await this.scoreCandidate(candidate, submission);
+        } catch (error) {
+          const err = error as Error;
+          this.logger.error(`Failed to score candidate ${candidate.id}`);
+          this.logger.error(err.message);
+          this.logger.error(err.stack);
+          return null;
+        }
+      });
+
+      const validResults = scored
         .filter(
           (result): result is ScoredEvent =>
             result !== null && result.score > 0.3,
@@ -92,21 +116,21 @@ export class SimilarityEngine {
         .sort((a, b) => b.score - a.score);
 
       this.logger.log(
-        `Returning ${scored.length} candidates above similarity threshold`,
+        `Returning ${validResults.length} candidates above similarity threshold`,
       );
 
-      if (scored.length) {
+      if (validResults.length) {
         this.logger.debug(
-          `Top match: ${scored[0].event.title} (${scored[0].score})`,
+          `Top match: ${validResults[0].event.title} (${validResults[0].score})`,
         );
 
         this.logger.debug('Top match rule scores:');
-        Object.entries(scored[0].ruleScores).forEach(([rule, score]) => {
+        Object.entries(validResults[0].ruleScores).forEach(([rule, score]) => {
           this.logger.debug(`  ${rule}: ${score.toFixed(3)}`);
         });
       }
 
-      return scored;
+      return validResults;
     } catch (error) {
       const err = error as Error;
 
