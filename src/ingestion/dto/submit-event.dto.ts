@@ -1,17 +1,16 @@
 import { EventDateTime } from '@common';
 import { EventSubmission } from '@events/domain';
-import { IsString, IsOptional, IsDateString, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsDateString, ValidateIf, IsIn } from 'class-validator';
 
 export class SubmitEventDto {
   @IsString()
   title!: string;
 
-  @IsString()
+  @IsIn(['specific', 'all-day'])
   type!: 'specific' | 'all-day';
 
   @IsDateString()
   date!: string;
-
 
   @ValidateIf(o => o.type === 'specific')
   @IsOptional()
@@ -29,44 +28,44 @@ export class SubmitEventDto {
   @IsOptional()
   @IsString()
   description?: string;
-}
 
-export function mapDtoToEventSubmission(dto: SubmitEventDto): EventSubmission {
-  let datetime: EventDateTime;
+  toEventSubmission(): EventSubmission {
+    let datetime: EventDateTime;
 
-  if (dto.type === 'specific') {
-    datetime = {
-      type: 'specific',
-      date: new Date(dto.date),
-      endTime: dto.endTime ? new Date(dto.endTime) : undefined,
-    };
-  } else {
-    datetime = {
-      type: 'all-day',
-      date: new Date(dto.date),
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-    };
-  }
+    if (this.type === 'specific') {
+      datetime = {
+        type: 'specific',
+        date: new Date(this.date),
+        endTime: this.endTime ? new Date(this.endTime) : undefined,
+      };
+    } else {
+      datetime = {
+        type: 'all-day',
+        date: new Date(this.date),
+        endDate: this.endDate ? new Date(this.endDate) : undefined,
+      };
+    }
 
-  return {
-    title: dto.title,
-    datetime,
-    venue: dto.venue,
-  };
-}
-
-export function mapDtoToEventDateTime(dto: SubmitEventDto): EventDateTime {
-  if (dto.type === 'specific') {
     return {
-      type: 'specific',
-      date: new Date(dto.date),
-      endTime: dto.endTime ? new Date(dto.endTime) : undefined,
+      title: this.title,
+      datetime,
+      venue: this.venue,
     };
   }
 
-  return {
-    type: 'all-day',
-    date: new Date(dto.date),
-    endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-  };
+  toEventDateTime(): EventDateTime {
+    if (this.type === 'specific') {
+      return {
+        type: 'specific',
+        date: new Date(this.date),
+        endTime: this.endTime ? new Date(this.endTime) : undefined,
+      };
+    }
+
+    return {
+      type: 'all-day',
+      date: new Date(this.date),
+      endDate: this.endDate ? new Date(this.endDate) : undefined,
+    };
+  }
 }
