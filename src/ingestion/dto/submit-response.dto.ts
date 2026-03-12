@@ -2,13 +2,19 @@ import { EventDateTime } from '@common';
 import { SubmitEventDto } from './submit-event.dto';
 
 export class SubmitResponseDto {
-  action!: 'created' | 'needs_decision';
+  /**
+   * - 'created': A new event was created
+   * - 'needs_decision': Similar events found, user must decide
+   * - 'linked': Submission matched an existing event exactly and was auto-linked
+   */
+  action!: 'created' | 'needs_decision' | 'linked';
+
   message!: string;
 
-  // Only present when action = 'created'
+  // Present when action = 'created' or 'linked'
   eventId?: string;
 
-  // Only present when action = 'needs_decision'
+  // Present when action = 'needs_decision'
   similar?: Array<{
     event: {
       id: string;
@@ -18,9 +24,9 @@ export class SubmitResponseDto {
     };
     score: number;
     matches: Record<string, boolean>;
-    ruleScores?: Record<string, number>; // Optional, for debugging
+    ruleScores?: Record<string, number>;
   }>;
 
-  // Only present when action = 'needs_decision'
+  // Present when action = 'needs_decision'
   originalSubmission?: SubmitEventDto;
 }

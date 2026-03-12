@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository } from '@mikro-orm/postgresql';
 import { SimilarityEngine } from './similarity-engine.service';
@@ -10,6 +10,8 @@ import { EventSubmission } from '@events/domain';
 
 @Injectable()
 export class IngestionService {
+  private readonly logger = new Logger(IngestionService.name);
+
   constructor(
     @InjectRepository(Event)
     private readonly repo: EntityRepository<Event>,
@@ -18,12 +20,26 @@ export class IngestionService {
   ) {}
 
   async submit(data: SubmitEventDto): Promise<SubmitResponseDto> {
-    const similar = await this.similarityEngine.findSimilar(
-      data.toEventSubmission(),
-    );
+    const submission = data.toEventSubmission();
+    const similar = await this.similarityEngine.findSimilar(submission);
+
+    // Check for exact match (score 1.0)
+    const exactMatch = similar.find((s) => s.score === 1.0);
+
+    if (exactMatch) {
+      this.logger.log(
+        `🎯 Exact match found for "${data.title}" - auto-linking to ${exactMatch.event.id}`,
+      );
+
+      return {
+        action: 'linked',
+        message: 'Event already exists',
+        eventId: exactMatch.event.id,
+      };
+    }
 
     if (similar.length === 0) {
-      const event = await this.createEvent(data.toEventSubmission());
+      const event = await this.createEvent(submission);
       return {
         action: 'created',
         message: 'Event published successfully',
