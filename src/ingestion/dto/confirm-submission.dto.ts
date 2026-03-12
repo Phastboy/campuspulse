@@ -5,7 +5,7 @@ export class ConfirmSubmissionDto extends SubmitEventDto {
   @IsIn(['new', 'duplicate'])
   decision!: 'new' | 'duplicate';
 
-  @ValidateIf(o => o.decision === 'duplicate')
+  @ValidateIf((o) => o.decision === 'duplicate')
   @IsUUID()
   existingEventId?: string;
 }

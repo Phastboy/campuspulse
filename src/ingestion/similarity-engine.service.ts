@@ -32,7 +32,7 @@ export class SimilarityEngine {
     private readonly rules: SimilarityRule[],
   ) {
     this.logger.log(`SimilarityEngine initialized with ${rules.length} rules`);
-    this.logger.debug('Rules loaded: ' + rules.map(r => r.name).join(', '));
+    this.logger.debug('Rules loaded: ' + rules.map((r) => r.name).join(', '));
   }
 
   async findSimilar(submission: EventSubmission): Promise<ScoredEvent[]> {
@@ -56,10 +56,10 @@ export class SimilarityEngine {
 
       const candidates = await qb
         .select('*')
-        .where(
-          `(e.datetime->>'date')::timestamptz BETWEEN ? AND ?`,
-          [startDate, endDate],
-        )
+        .where(`(e.datetime->>'date')::timestamptz BETWEEN ? AND ?`, [
+          startDate,
+          endDate,
+        ])
         .getResult();
 
       this.logger.log(`Found ${candidates.length} candidate events`);
@@ -69,11 +69,12 @@ export class SimilarityEngine {
         return [];
       }
 
-      // Log candidate IDs for traceability
-      this.logger.debug(`Candidate IDs: ${candidates.map(c => c.id).join(', ')}`);
+      this.logger.debug(
+        `Candidate IDs: ${candidates.map((c) => c.id).join(', ')}`,
+      );
 
       const scored = candidates
-        .map(candidate => {
+        .map((candidate) => {
           try {
             return this.scoreCandidate(candidate, submission);
           } catch (error) {
@@ -81,11 +82,12 @@ export class SimilarityEngine {
             this.logger.error(`Failed to score candidate ${candidate.id}`);
             this.logger.error(err.message);
             this.logger.error(err.stack);
-            return null; // Skip this candidate
+            return null;
           }
         })
-        .filter((result): result is ScoredEvent =>
-          result !== null && result.score > 0.3
+        .filter(
+          (result): result is ScoredEvent =>
+            result !== null && result.score > 0.3,
         )
         .sort((a, b) => b.score - a.score);
 
@@ -98,7 +100,6 @@ export class SimilarityEngine {
           `Top match: ${scored[0].event.title} (${scored[0].score})`,
         );
 
-        // Log detailed breakdown of top match
         this.logger.debug('Top match rule scores:');
         Object.entries(scored[0].ruleScores).forEach(([rule, score]) => {
           this.logger.debug(`  ${rule}: ${score.toFixed(3)}`);
@@ -114,7 +115,6 @@ export class SimilarityEngine {
       this.logger.error(`Error message: ${err.message}`);
       this.logger.error(`Error stack: ${err.stack}`);
 
-      // Log submission details for debugging
       this.logger.error('Submission that caused error:');
       this.logger.error(JSON.stringify(submission, null, 2));
 
@@ -134,36 +134,74 @@ export class SimilarityEngine {
       submissionDate: submission.datetime.date,
     };
 
+    // STEP 1: Check for exact match first (short-circuit)
+    const exactRule = this.rules.find((r) => r.name === 'exact');
+    if (exactRule) {
+      try {
+        const exactScore = exactRule.calculate(context);
+
+        if (exactScore === 1.0) {
+          this.logger.log(
+            `🎯 Exact match found for candidate ${candidate.id} - short-circuiting`,
+          );
+
+          // Return immediately with only exact match data
+          return {
+            event: {
+              id: candidate.id,
+              title: candidate.title,
+              datetime: candidate.datetime,
+              venue: candidate.venue,
+            },
+            score: 1.0,
+            matches: { exact: true },
+            ruleScores: { exact: 1.0 }, // Only exact rule matters
+          };
+        }
+      } catch (error) {
+        this.logger.error(`Exact rule failed for candidate ${candidate.id}`);
+      }
+    }
+
+    // STEP 2: Normal scoring for non-exact matches
+    this.logger.debug(
+      `No exact match for candidate ${candidate.id}, calculating full score`,
+    );
+
     let totalWeight = 0;
     let weightedScore = 0;
-
     const ruleScores: Record<string, number> = {};
     const failedRules: string[] = [];
 
     for (const rule of this.rules) {
-      // Check applicability
+      if (rule.name === 'exact') continue;
+
       if (rule.isApplicable) {
         try {
           if (!rule.isApplicable(context)) {
-            this.logger.debug(`Rule "${rule.name}" not applicable for candidate ${candidate.id}`);
+            this.logger.debug(
+              `Rule "${rule.name}" not applicable for candidate ${candidate.id}`,
+            );
             continue;
           }
         } catch (error) {
           const err = error as Error;
-          this.logger.error(`Error checking applicability for rule "${rule.name}"`);
+          this.logger.error(
+            `Error checking applicability for rule "${rule.name}"`,
+          );
           this.logger.error(err.message);
           failedRules.push(rule.name);
           continue;
         }
       }
 
-      // Calculate score
       try {
         const score = rule.calculate(context);
 
-        // Validate score range
         if (score < 0 || score > 1) {
-          this.logger.warn(`Rule "${rule.name}" returned score ${score} outside [0,1] range - clamping`);
+          this.logger.warn(
+            `Rule "${rule.name}" returned score ${score} outside [0,1] range - clamping`,
+          );
           ruleScores[rule.name] = Math.max(0, Math.min(1, score));
         } else {
           ruleScores[rule.name] = score;
@@ -172,32 +210,32 @@ export class SimilarityEngine {
         weightedScore += score * Math.abs(rule.weight);
         totalWeight += Math.abs(rule.weight);
 
-        this.logger.debug(`Rule "${rule.name}" score: ${score.toFixed(3)} (weight: ${rule.weight})`);
+        this.logger.debug(
+          `Rule "${rule.name}" score: ${score.toFixed(3)} (weight: ${rule.weight})`,
+        );
       } catch (err) {
         const error = err as Error;
-
-        // Log detailed error information
-        this.logger.error(`Rule "${rule.name}" failed for candidate ${candidate.id}`);
+        this.logger.error(
+          `Rule "${rule.name}" failed for candidate ${candidate.id}`,
+        );
         this.logger.error(`Error: ${error.message}`);
         this.logger.error(`Stack: ${error.stack}`);
-
-        // Log context that caused the error
-        this.logger.error('Context at time of failure:');
         this.logger.error(`  Submission title: ${context.submission.title}`);
         this.logger.error(`  Candidate title: ${context.candidate.title}`);
-        this.logger.error(`  Submission date: ${context.submissionDate.toISOString()}`);
-
+        this.logger.error(
+          `  Submission date: ${context.submissionDate.toISOString()}`,
+        );
         failedRules.push(rule.name);
       }
     }
 
-    // Log if any rules failed
     if (failedRules.length > 0) {
-      this.logger.warn(`Candidate ${candidate.id}: ${failedRules.length} rules failed: ${failedRules.join(', ')}`);
+      this.logger.warn(
+        `Candidate ${candidate.id}: ${failedRules.length} rules failed: ${failedRules.join(', ')}`,
+      );
     }
 
     const finalScore = totalWeight ? weightedScore / totalWeight : 0;
-
     const matches: Record<string, boolean> = {};
 
     for (const [name, score] of Object.entries(ruleScores)) {
@@ -206,7 +244,9 @@ export class SimilarityEngine {
       }
     }
 
-    this.logger.debug(`Candidate ${candidate.id} final score: ${finalScore.toFixed(3)}`);
+    this.logger.debug(
+      `Candidate ${candidate.id} final score: ${finalScore.toFixed(3)}`,
+    );
 
     return {
       event: {

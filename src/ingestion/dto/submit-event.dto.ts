@@ -1,6 +1,12 @@
 import { EventDateTime } from '@common';
 import { EventSubmission } from '@events/domain';
-import { IsString, IsOptional, IsDateString, ValidateIf, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  ValidateIf,
+  IsIn,
+} from 'class-validator';
 
 export class SubmitEventDto {
   @IsString()
@@ -12,12 +18,12 @@ export class SubmitEventDto {
   @IsDateString()
   date!: string;
 
-  @ValidateIf(o => o.type === 'specific')
+  @ValidateIf((o) => o.type === 'specific')
   @IsOptional()
   @IsDateString()
   endTime?: string;
 
-  @ValidateIf(o => o.type === 'all-day')
+  @ValidateIf((o) => o.type === 'all-day')
   @IsOptional()
   @IsDateString()
   endDate?: string;

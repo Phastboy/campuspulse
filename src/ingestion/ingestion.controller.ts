@@ -6,7 +6,7 @@ import { ApiResponse } from '@common/dto/api-response.dto';
 
 @Controller('ingestion')
 export class IngestionController {
-  constructor(private readonly ingestionService: IngestionService) { }
+  constructor(private readonly ingestionService: IngestionService) {}
 
   @Post('submit')
   @HttpCode(200)
