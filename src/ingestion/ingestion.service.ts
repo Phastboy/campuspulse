@@ -76,7 +76,7 @@ export class IngestionService {
       return {
         action: 'linked',
         eventId: exactMatch.event.id,
-        message: 'Exact duplicate detected; linked to existing event',
+        message: 'Event already exists',
       };
     }
 
