@@ -6,7 +6,6 @@ import { mapDtoToEventSubmission, SubmitEventDto } from './dto/submit-event.dto'
 import { ConfirmSubmissionDto } from './dto/confirm-submission.dto';
 import { SubmitResponseDto } from './dto/submit-response.dto';
 import { Event } from '../events/entities/event.entity';
-import { EVENT_STATUS } from '@common';
 
 
 @Injectable()
@@ -52,7 +51,6 @@ export class IngestionService {
   private async createEvent(data: SubmitEventDto, em: EntityManager = this.em) {
     const event = this.repo.create({
       ...mapDtoToEventSubmission(data),
-      status: EVENT_STATUS.PENDING,
       createdAt: new Date(),
     });
 

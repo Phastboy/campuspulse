@@ -1,8 +1,6 @@
-// src/ingestion/similarity-engine.service.ts
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository } from '@mikro-orm/postgresql';
-import { EVENT_STATUS } from '@common';
 import {
   SimilarityRule,
   SimilarityContext,
@@ -58,10 +56,7 @@ export class SimilarityEngine {
 
       const candidates = await qb
         .select('*')
-        .where({
-          status: { $in: [EVENT_STATUS.PENDING, EVENT_STATUS.LIVE] },
-        })
-        .andWhere(
+        .where(
           `(e.datetime->>'date')::timestamptz BETWEEN ? AND ?`,
           [startDate, endDate],
         )

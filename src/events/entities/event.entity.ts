@@ -1,5 +1,5 @@
-import { Entity, PrimaryKey, Property, Enum } from '@mikro-orm/core';
-import { type EventStatus, EVENT_STATUS, type EventDateTime } from '@common';
+import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
+import { type EventDateTime } from '@common';
 
 @Entity({ tableName: 'events' })
 export class Event {
@@ -17,9 +17,6 @@ export class Event {
 
   @Property({ nullable: true })
   description?: string;
-
-  @Enum(() => EVENT_STATUS)
-  status: EventStatus = EVENT_STATUS.PENDING;
 
   @Property({ onCreate: () => new Date() })
   createdAt!: Date;
