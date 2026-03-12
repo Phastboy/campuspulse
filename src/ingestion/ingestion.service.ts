@@ -8,7 +8,6 @@ import { SubmitResponseDto } from './dto/submit-response.dto';
 import { Event } from '../events/entities/event.entity';
 import { EventSubmission } from '@events/domain';
 
-
 @Injectable()
 export class IngestionService {
   constructor(
@@ -16,11 +15,11 @@ export class IngestionService {
     private readonly repo: EntityRepository<Event>,
     private readonly em: EntityManager,
     private readonly similarityEngine: SimilarityEngine,
-  ) { }
+  ) {}
 
   async submit(data: SubmitEventDto): Promise<SubmitResponseDto> {
     const similar = await this.similarityEngine.findSimilar(
-      data.toEventSubmission()
+      data.toEventSubmission(),
     );
 
     if (similar.length === 0) {
@@ -45,7 +44,7 @@ export class IngestionService {
       return {
         action: 'linked',
         eventId: data.existingEventId,
-        message: 'Linked to existing event'
+        message: 'Linked to existing event',
       };
     }
 
@@ -54,12 +53,15 @@ export class IngestionService {
       return {
         action: 'created',
         eventId: event.id,
-        message: 'Event published successfully'
+        message: 'Event published successfully',
       };
     });
   }
 
-  private async createEvent(data: EventSubmission, em: EntityManager = this.em) {
+  private async createEvent(
+    data: EventSubmission,
+    em: EntityManager = this.em,
+  ) {
     const event = this.repo.create({
       ...data,
       createdAt: new Date(),

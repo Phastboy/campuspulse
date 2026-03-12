@@ -3,7 +3,10 @@ import {
   SimilarityRule,
   SimilarityContext,
 } from '../interfaces/similarity-rule.interface';
-import { getComparableDateFromEvent, isSameDay } from '../helpers/event-date.helper'; // Fixed path
+import {
+  getComparableDateFromEvent,
+  isSameDay,
+} from '../helpers/event-date.helper'; // Fixed path
 
 @Injectable()
 export class ExactMatchRule implements SimilarityRule {

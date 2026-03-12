@@ -13,7 +13,9 @@ export class DateProximityRule implements SimilarityRule {
 
   calculate(context: SimilarityContext): number {
     try {
-      this.logger.debug(`Calculating date proximity for candidate: ${context.candidate.id}`);
+      this.logger.debug(
+        `Calculating date proximity for candidate: ${context.candidate.id}`,
+      );
 
       // submission uses 'datetime', candidate uses 'datetime'
       const submissionDate = context.submission.datetime.date;
@@ -21,12 +23,16 @@ export class DateProximityRule implements SimilarityRule {
 
       // Validate that we have actual Date objects
       if (!(submissionDate instanceof Date)) {
-        this.logger.error(`Submission date is not a Date: ${typeof submissionDate}`);
+        this.logger.error(
+          `Submission date is not a Date: ${typeof submissionDate}`,
+        );
         return 0;
       }
 
       if (!(candidateDate instanceof Date)) {
-        this.logger.error(`Candidate date is not a Date: ${typeof candidateDate} - value: ${JSON.stringify(candidateDate)}`);
+        this.logger.error(
+          `Candidate date is not a Date: ${typeof candidateDate} - value: ${JSON.stringify(candidateDate)}`,
+        );
         return 0; // Return 0 score instead of throwing
       }
 
@@ -62,8 +68,8 @@ export class DateProximityRule implements SimilarityRule {
   isApplicable(context: SimilarityContext): boolean {
     try {
       const submissionDate = context.submission.datetime.date;
-      const isApplicable = submissionDate instanceof Date &&
-        !isNaN(submissionDate.getTime());
+      const isApplicable =
+        submissionDate instanceof Date && !isNaN(submissionDate.getTime());
 
       this.logger.debug(`DateProximityRule isApplicable: ${isApplicable}`);
 
