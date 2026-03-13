@@ -7,23 +7,56 @@ import {
 } from './interfaces/similarity-rule.interface';
 import { Event } from '@events/entities/event.entity';
 import { EventSubmission } from '@events/domain';
+import { ScoredEvent } from './dto/similarity.dto';
 
-export interface ScoredEvent {
-  event: {
-    id: string;
-    title: string;
-    datetime: Event['datetime'];
-    venue: string;
-  };
+/**
+ * Internal scoring result produced during candidate evaluation.
+ *
+ * `ruleScores` is kept here for debug logging only and is never returned to
+ * callers or serialised into API responses. The public {@link ScoredEvent}
+ * type is the stripped version without `ruleScores`.
+ */
+interface InternalScoredEvent {
+  event: ScoredEvent['event'];
   score: number;
   matches: Record<string, boolean>;
+  /** Engine-internal diagnostic data — stripped before returning to callers. */
   ruleScores: Record<string, number>;
 }
 
+/**
+ * Scores existing events against a new submission to detect potential duplicates.
+ *
+ * The engine fetches all events within ±7 days of the submission date and
+ * scores each candidate against a set of injected {@link SimilarityRule}
+ * instances. Rules are weighted and their scores combined into a single
+ * aggregate score per candidate.
+ *
+ * **Short-circuit optimisation:** if the `"exact"` rule returns `1.0` for any
+ * candidate, scoring stops immediately for that candidate and it is returned
+ * as a definitive match. No other rules are evaluated.
+ *
+ * **Adding rules:** implement {@link SimilarityRule} and register the class
+ * in {@link IngestionModule}'s `SIMILARITY_RULES` factory. The engine itself
+ * does not need to change — Open/Closed principle.
+ *
+ * @example
+ * // Only candidates scoring above 0.3 are returned.
+ * // Results are sorted by score descending.
+ * const similar = await similarityEngine.findSimilar(submission);
+ */
 @Injectable()
 export class SimilarityEngine {
   private readonly logger = new Logger(SimilarityEngine.name);
-  private readonly CONCURRENCY_LIMIT = 10;
+
+  /** Maximum number of candidates scored concurrently. */
+  private readonly CONCURRENCY_LIMIT: number = 10;
+
+  /** Minimum aggregate score for a candidate to be included in results. */
+  private readonly SIMILARITY_THRESHOLD: number = 0.3;
+
+  /** Score threshold above which an individual rule dimension is flagged in `matches`. */
+  private readonly MATCH_THRESHOLD: number = 0.7;
 
   constructor(
     @InjectRepository(Event)
@@ -32,10 +65,112 @@ export class SimilarityEngine {
     @Inject('SIMILARITY_RULES')
     private readonly rules: SimilarityRule[],
   ) {
-    this.logger.log(`SimilarityEngine initialized with ${rules.length} rules`);
-    this.logger.debug('Rules loaded: ' + rules.map((r) => r.name).join(', '));
+    this.logger.log(`SimilarityEngine initialised with ${rules.length} rules`);
+    this.logger.debug(`Rules: ${rules.map((r) => r.name).join(', ')}`);
   }
 
+  /**
+   * Finds existing events that are similar to the given submission.
+   *
+   * Searches within a ±7 day window around the submission date, scores all
+   * candidates in parallel (bounded by {@link CONCURRENCY_LIMIT}), filters
+   * out candidates below {@link SIMILARITY_THRESHOLD}, and returns results
+   * sorted by score descending.
+   *
+   * Rule-level scores are stripped from the returned objects — callers receive
+   * only the public {@link ScoredEvent} shape.
+   *
+   * @param submission - The normalised event submission to compare against
+   * @returns Candidates above the similarity threshold, sorted by score descending
+   * @throws Re-throws database errors — individual candidate scoring failures
+   *   are caught and logged, and that candidate is excluded from results
+   */
+  async findSimilar(submission: EventSubmission): Promise<ScoredEvent[]> {
+    this.logger.log(`Finding similar events for: "${submission.title}"`);
+
+    const submissionDate = submission.datetime.date;
+
+    const startDate = new Date(submissionDate);
+    startDate.setDate(startDate.getDate() - 7);
+
+    const endDate = new Date(submissionDate);
+    endDate.setDate(endDate.getDate() + 7);
+
+    this.logger.debug(
+      `Search window: ${startDate.toISOString()} → ${endDate.toISOString()}`,
+    );
+
+    try {
+      const qb = this.eventRepo.createQueryBuilder('e');
+      const candidates = await qb
+        .select('*')
+        .where(`(e.datetime->>'date')::timestamptz BETWEEN ? AND ?`, [
+          startDate,
+          endDate,
+        ])
+        .getResult();
+
+      this.logger.log(`${candidates.length} candidates in window`);
+
+      if (!candidates.length) return [];
+
+      const scored = await this.mapConcurrent(candidates, async (candidate) => {
+        try {
+          return this.scoreCandidate(candidate, submission);
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          this.logger.error(
+            `Failed to score candidate ${candidate.id}: ${message}`,
+          );
+          return null;
+        }
+      });
+
+      const validResults = scored
+        .filter(
+          (result): result is InternalScoredEvent =>
+            result !== null && result.score > this.SIMILARITY_THRESHOLD,
+        )
+        .sort((a, b) => b.score - a.score);
+
+      this.logger.log(
+        `${validResults.length} candidates above threshold (${this.SIMILARITY_THRESHOLD})`,
+      );
+
+      if (validResults.length > 0) {
+        const top = validResults[0];
+        this.logger.debug(`Top match: "${top.event.title}" (${top.score})`);
+        this.logger.debug('Top match rule scores:');
+        for (const [rule, score] of Object.entries(top.ruleScores)) {
+          this.logger.debug(`  ${rule}: ${score.toFixed(3)}`);
+        }
+      }
+
+      // Strip internal ruleScores before returning to callers
+      return validResults.map(
+        ({ ruleScores: _internal, ...publicFields }) => publicFields,
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error finding similar events: ${message}`);
+      this.logger.error(`Submission: ${JSON.stringify(submission)}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Processes an array of items concurrently, bounded by `concurrency`.
+   *
+   * Splits `items` into chunks of size `concurrency` and processes each
+   * chunk with `Promise.all` before moving to the next. This prevents
+   * unbounded parallelism when the candidate pool is large.
+   *
+   * @param items - Items to process
+   * @param fn - Async function to apply to each item
+   * @param concurrency - Maximum number of items processed in parallel
+   * @returns Results in the same order as `items`
+   */
   private async mapConcurrent<T, R>(
     items: T[],
     fn: (item: T) => Promise<R>,
@@ -50,7 +185,7 @@ export class SimilarityEngine {
 
       if (items.length > 100) {
         this.logger.debug(
-          `Processed ${Math.min(i + concurrency, items.length)}/${items.length} candidates`,
+          `Scored ${Math.min(i + concurrency, items.length)}/${items.length}`,
         );
       }
     }
@@ -58,98 +193,26 @@ export class SimilarityEngine {
     return results;
   }
 
-  async findSimilar(submission: EventSubmission): Promise<ScoredEvent[]> {
-    this.logger.log('Finding similar events for submission');
-
-    const submissionDate = submission.datetime.date;
-
-    const startDate = new Date(submissionDate);
-    startDate.setDate(startDate.getDate() - 7);
-
-    const endDate = new Date(submissionDate);
-    endDate.setDate(endDate.getDate() + 7);
-
-    this.logger.debug(`Submission date: ${submissionDate.toISOString()}`);
-    this.logger.debug(
-      `Search range: ${startDate.toISOString()} → ${endDate.toISOString()}`,
-    );
-
-    try {
-      const qb = this.eventRepo.createQueryBuilder('e');
-
-      const candidates = await qb
-        .select('*')
-        .where(`(e.datetime->>'date')::timestamptz BETWEEN ? AND ?`, [
-          startDate,
-          endDate,
-        ])
-        .getResult();
-
-      this.logger.log(`Found ${candidates.length} candidate events`);
-
-      if (!candidates.length) {
-        this.logger.debug('No candidates found, returning empty array');
-        return [];
-      }
-
-      this.logger.debug(
-        `Candidate IDs: ${candidates.map((c) => c.id).join(', ')}`,
-      );
-
-      const scored = await this.mapConcurrent(candidates, async (candidate) => {
-        try {
-          return await this.scoreCandidate(candidate, submission);
-        } catch (error) {
-          const err = error as Error;
-          this.logger.error(`Failed to score candidate ${candidate.id}`);
-          this.logger.error(err.message);
-          this.logger.error(err.stack);
-          return null;
-        }
-      });
-
-      const validResults = scored
-        .filter(
-          (result): result is ScoredEvent =>
-            result !== null && result.score > 0.3,
-        )
-        .sort((a, b) => b.score - a.score);
-
-      this.logger.log(
-        `Returning ${validResults.length} candidates above similarity threshold`,
-      );
-
-      if (validResults.length) {
-        this.logger.debug(
-          `Top match: ${validResults[0].event.title} (${validResults[0].score})`,
-        );
-
-        this.logger.debug('Top match rule scores:');
-        Object.entries(validResults[0].ruleScores).forEach(([rule, score]) => {
-          this.logger.debug(`  ${rule}: ${score.toFixed(3)}`);
-        });
-      }
-
-      return validResults;
-    } catch (error) {
-      const err = error as Error;
-
-      this.logger.error('Error finding similar events');
-      this.logger.error(`Error type: ${err.name}`);
-      this.logger.error(`Error message: ${err.message}`);
-      this.logger.error(`Error stack: ${err.stack}`);
-
-      this.logger.error('Submission that caused error:');
-      this.logger.error(JSON.stringify(submission, null, 2));
-
-      throw err;
-    }
-  }
-
+  /**
+   * Scores a single candidate event against the submission.
+   *
+   * First checks for an exact match via the `"exact"` rule — if found,
+   * returns immediately with score `1.0` without evaluating other rules.
+   *
+   * For non-exact candidates, runs all remaining rules (skipping inapplicable
+   * ones), computes a weighted average, and collects dimension-level match flags.
+   *
+   * Rules that throw are logged and excluded from the weighted average, but
+   * do not abort scoring for the rest of the rules.
+   *
+   * @param candidate - The existing event to score
+   * @param submission - The submitted event to compare against
+   * @returns Internal scored result including rule-level diagnostics
+   */
   private scoreCandidate(
     candidate: Event,
     submission: EventSubmission,
-  ): ScoredEvent {
+  ): InternalScoredEvent {
     this.logger.debug(`Scoring candidate: ${candidate.id}`);
 
     const context: SimilarityContext = {
@@ -158,42 +221,31 @@ export class SimilarityEngine {
       submissionDate: submission.datetime.date,
     };
 
-    // STEP 1: Check for exact match first (short-circuit)
+    // Short-circuit: exact match check first
     const exactRule = this.rules.find((r) => r.name === 'exact');
     if (exactRule) {
-      try {
-        const exactScore = exactRule.calculate(context);
-
-        if (exactScore === 1.0) {
-          this.logger.log(
-            `🎯 Exact match found for candidate ${candidate.id} - short-circuiting`,
-          );
-
-          // Return immediately with only exact match data
-          return {
-            event: {
-              id: candidate.id,
-              title: candidate.title,
-              datetime: candidate.datetime,
-              venue: candidate.venue,
-            },
-            score: 1.0,
-            matches: { exact: true },
-            ruleScores: { exact: 1.0 }, // Only exact rule matters
-          };
-        }
-      } catch (error) {
-        this.logger.error(`Exact rule failed for candidate ${candidate.id}`);
+      const exactScore = exactRule.calculate(context);
+      if (exactScore === 1.0) {
+        this.logger.log(
+          `Exact match: candidate ${candidate.id} — short-circuiting`,
+        );
+        return {
+          event: {
+            id: candidate.id,
+            title: candidate.title,
+            datetime: candidate.datetime,
+            venue: candidate.venue,
+          },
+          score: 1.0,
+          matches: { exact: true },
+          ruleScores: { exact: 1.0 },
+        };
       }
     }
 
-    // STEP 2: Normal scoring for non-exact matches
-    this.logger.debug(
-      `No exact match for candidate ${candidate.id}, calculating full score`,
-    );
-
-    let totalWeight = 0;
-    let weightedScore = 0;
+    // Full weighted scoring for non-exact candidates
+    let totalWeight: number = 0;
+    let weightedScore: number = 0;
     const ruleScores: Record<string, number> = {};
     const failedRules: string[] = [];
 
@@ -208,46 +260,39 @@ export class SimilarityEngine {
             );
             continue;
           }
-        } catch (error) {
-          const err = error as Error;
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           this.logger.error(
-            `Error checking applicability for rule "${rule.name}"`,
+            `Applicability check failed for rule "${rule.name}": ${message}`,
           );
-          this.logger.error(err.message);
           failedRules.push(rule.name);
           continue;
         }
       }
 
       try {
-        const score = rule.calculate(context);
+        const rawScore = rule.calculate(context);
+        // Clamp to [0, 1] — rules should stay in range but we defend anyway
+        const score = Math.max(0, Math.min(1, rawScore));
 
-        if (score < 0 || score > 1) {
+        if (rawScore !== score) {
           this.logger.warn(
-            `Rule "${rule.name}" returned score ${score} outside [0,1] range - clamping`,
+            `Rule "${rule.name}" returned ${rawScore} — clamped to ${score}`,
           );
-          ruleScores[rule.name] = Math.max(0, Math.min(1, score));
-        } else {
-          ruleScores[rule.name] = score;
         }
 
+        ruleScores[rule.name] = score;
         weightedScore += score * Math.abs(rule.weight);
         totalWeight += Math.abs(rule.weight);
 
         this.logger.debug(
-          `Rule "${rule.name}" score: ${score.toFixed(3)} (weight: ${rule.weight})`,
+          `Rule "${rule.name}": ${score.toFixed(3)} (weight: ${rule.weight})`,
         );
-      } catch (err) {
-        const error = err as Error;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.error(
-          `Rule "${rule.name}" failed for candidate ${candidate.id}`,
-        );
-        this.logger.error(`Error: ${error.message}`);
-        this.logger.error(`Stack: ${error.stack}`);
-        this.logger.error(`  Submission title: ${context.submission.title}`);
-        this.logger.error(`  Candidate title: ${context.candidate.title}`);
-        this.logger.error(
-          `  Submission date: ${context.submissionDate.toISOString()}`,
+          `Rule "${rule.name}" threw for candidate ${candidate.id}: ${message}`,
         );
         failedRules.push(rule.name);
       }
@@ -255,17 +300,15 @@ export class SimilarityEngine {
 
     if (failedRules.length > 0) {
       this.logger.warn(
-        `Candidate ${candidate.id}: ${failedRules.length} rules failed: ${failedRules.join(', ')}`,
+        `${failedRules.length} rule(s) failed for candidate ${candidate.id}: ${failedRules.join(', ')}`,
       );
     }
 
-    const finalScore = totalWeight ? weightedScore / totalWeight : 0;
-    const matches: Record<string, boolean> = {};
+    const finalScore = totalWeight > 0 ? weightedScore / totalWeight : 0;
 
+    const matches: Record<string, boolean> = {};
     for (const [name, score] of Object.entries(ruleScores)) {
-      if (score > 0.7) {
-        matches[name] = true;
-      }
+      if (score > this.MATCH_THRESHOLD) matches[name] = true;
     }
 
     this.logger.debug(
