@@ -1,98 +1,298 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CampusPulse API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Campus event aggregation platform for OAU — NestJS 11 · MikroORM 6 · PostgreSQL.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Events at OAU are announced across dozens of WhatsApp groups. CampusPulse aggregates them into a single feed. This repository is the backend API.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Stack
 
-## Project setup
+| Layer | Technology |
+|-------|-----------|
+| Framework | NestJS 11 |
+| ORM | MikroORM 6 (PostgreSQL driver) |
+| Database | PostgreSQL 14+ |
+| Validation | class-validator + class-transformer |
+| Config validation | Zod |
+| API docs | Swagger (optional, basic-auth protected) |
+| Package manager | pnpm |
 
-```bash
-$ pnpm install
-```
+---
 
-## Compile and run the project
+## Prerequisites
+
+- Node.js 20+
+- pnpm (`npm install -g pnpm`)
+- PostgreSQL 14+ running locally or a connection URL (Supabase, Railway, etc.)
+
+---
+
+## Setup
 
 ```bash
-# development
-$ pnpm run start
+# 1. Clone and install
+git clone https://github.com/Phastboy/campuspulse
+cd campuspulse
+pnpm install
 
-# watch mode
-$ pnpm run start:dev
+# 2. Configure environment
+cp .env.example .env
+# Edit .env — the only required value is DATABASE_URL
 
-# production mode
-$ pnpm run start:prod
+# 3. Run migrations
+pnpm migration:up
+
+# 4. Start dev server
+pnpm dev
 ```
 
-## Run tests
+API is available at `http://localhost:3000/api`.
+
+---
+
+## Environment variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | ✓ | — | PostgreSQL connection string |
+| `NODE_ENV` | | `development` | `development` \| `production` \| `test` |
+| `PORT` | | `3000` | HTTP port |
+| `GLOBAL_PREFIX` | | `api` | URL prefix for all routes |
+| `SWAGGER_ENABLED` | | `false` | Enable Swagger UI |
+| `SWAGGER_USER` | if enabled | — | Basic auth username for docs |
+| `SWAGGER_PASS` | if enabled | — | Basic auth password for docs |
+| `SWAGGER_SECURITY_NAME` | if enabled | — | Bearer auth scheme name in Swagger |
+| `SWAGGER_PATH_DOCS` | | `api/docs` | Swagger UI path |
+| `SWAGGER_PATH_JSON` | | `api/docs-json` | OpenAPI JSON path |
+
+---
+
+## API
+
+### Ingestion — two-step submission pipeline
+
+The ingestion pipeline handles all event submissions. It validates, scores for duplicates, and either auto-publishes or asks the submitter to resolve ambiguity.
+
+#### `POST /api/ingestion/submit`
+
+Submit an event. Three possible outcomes:
+
+| `action` | Meaning | Next step |
+|----------|---------|-----------|
+| `created` | New event — no duplicates found. Published immediately. | Done. |
+| `linked` | Exact duplicate detected. Linked to existing event. | Done. |
+| `needs_decision` | Similar events found. Submitter must resolve. | Call `/ingestion/confirm`. |
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+curl -X POST http://localhost:3000/api/ingestion/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "NACOS Parliamentary Summit 2026",
+    "type": "specific",
+    "date": "2026-02-28",
+    "startTime": "2026-02-28T10:00:00.000Z",
+    "venue": "ACE Conference Hall, ICT"
+  }'
 ```
 
-## Deployment
+```json
+// Response — auto-created
+{
+  "success": true,
+  "data": {
+    "action": "created",
+    "message": "Event published successfully",
+    "eventId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  }
+}
+```
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```json
+// Response — needs decision
+{
+  "success": true,
+  "data": {
+    "action": "needs_decision",
+    "message": "Similar events found. Is this the same event?",
+    "similar": [
+      {
+        "event": {
+          "id": "existing-uuid",
+          "title": "NACOS Parliamentary Summit 2026",
+          "datetime": { "type": "specific", "date": "2026-02-28T00:00:00.000Z", "startTime": "2026-02-28T10:00:00.000Z" },
+          "venue": "ACE Conference Hall, ICT"
+        },
+        "score": 0.95,
+        "matches": { "title": true, "venue": true, "date": true }
+      }
+    ],
+    "originalSubmission": { "title": "...", "type": "specific", ... }
+  }
+}
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+#### `POST /api/ingestion/confirm`
+
+Resolve a `needs_decision` submission. Pass the `originalSubmission` from the previous response plus a `decision` field.
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+curl -X POST http://localhost:3000/api/ingestion/confirm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "decision": "duplicate",
+    "existingEventId": "existing-uuid",
+    "title": "NACOS Parliamentary Summit 2026",
+    "type": "specific",
+    "date": "2026-02-28",
+    "startTime": "2026-02-28T10:00:00.000Z",
+    "venue": "ACE Conference Hall, ICT"
+  }'
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+**Trust model:** `decision: "new"` is not unconditionally trusted. If an exact match exists (score 1.0 on title + venue + date), the engine overrides the decision and links anyway. Submitters cannot force duplicates into the system.
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+### Events — read and manage published events
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+#### `GET /api/events`
 
-## Support
+```bash
+# All upcoming events
+curl http://localhost:3000/api/events
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Filter by date range
+curl "http://localhost:3000/api/events?fromDate=2026-02-28&toDate=2026-02-28"
 
-## Stay in touch
+# Paginate
+curl "http://localhost:3000/api/events?limit=10&offset=20"
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Filter by datetime type
+curl "http://localhost:3000/api/events?type=specific"
+```
 
-## License
+#### `GET /api/events/venue/:venue`
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Case-insensitive partial match. Useful before submitting to check what is already at a venue.
+
+```bash
+curl http://localhost:3000/api/events/venue/Trust%20Hall
+curl http://localhost:3000/api/events/venue/ACE
+```
+
+#### `GET /api/events/:id`
+
+```bash
+curl http://localhost:3000/api/events/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+#### `PATCH /api/events/:id`
+
+All fields optional. Only provided fields are updated.
+
+```bash
+# Reschedule
+curl -X PATCH http://localhost:3000/api/events/uuid \
+  -H "Content-Type: application/json" \
+  -d '{ "date": "2026-03-07", "type": "specific", "startTime": "2026-03-07T10:00:00.000Z" }'
+
+# Update venue
+curl -X PATCH http://localhost:3000/api/events/uuid \
+  -H "Content-Type: application/json" \
+  -d '{ "venue": "New Admin Block, Room 101" }'
+```
+
+#### `DELETE /api/events/:id`
+
+Hard delete. Prefer updating `description` to note a cancellation — students who saved the link will still find a record.
+
+---
+
+## Database migrations
+
+```bash
+# Generate a migration from entity changes
+pnpm migration:create
+
+# Apply pending migrations
+pnpm migration:up
+
+# Roll back last migration
+pnpm migration:down
+
+# List all migrations and their status
+pnpm migration:list
+```
+
+---
+
+## Swagger docs
+
+Set `SWAGGER_ENABLED=true` in `.env` along with `SWAGGER_USER`, `SWAGGER_PASS`, and `SWAGGER_SECURITY_NAME`.
+
+Docs are at `http://localhost:3000/api/docs` (basic auth protected).
+OpenAPI JSON is at `http://localhost:3000/api/docs-json`.
+
+---
+
+## Project structure
+
+```
+src/
+├── common/
+│   ├── datetime/           # EventDateTime union type (SpecificDateTime | AllDayDate)
+│   ├── dto/                # ApiResponse wrapper
+│   └── filters/            # Global HTTP exception filter
+├── config/
+│   └── validation.ts       # Zod schema — validates all env vars at startup
+├── database/
+│   ├── migrations/         # MikroORM migration files
+│   └── mikro-orm.config.ts
+├── events/
+│   ├── domain/             # EventSubmission interface
+│   ├── dto/                # EventQueryDto, UpdateEventDto
+│   ├── entities/           # Event entity (datetime stored as JSONB)
+│   ├── events.controller.ts
+│   ├── events.service.ts
+│   └── events.module.ts
+├── ingestion/
+│   ├── dto/                # SubmitEventDto, ConfirmSubmissionDto, SubmitResponseDto
+│   ├── helpers/            # getComparableDateFromEvent, isSameDay
+│   ├── interfaces/         # SimilarityRule, SimilarityContext
+│   ├── rules/              # ExactMatchRule, TitleSimilarityRule, VenueSimilarityRule, DateProximityRule
+│   ├── ingestion.controller.ts
+│   ├── ingestion.service.ts
+│   ├── ingestion.module.ts
+│   └── similarity-engine.service.ts
+├── app.module.ts
+├── main.ts
+└── swagger.config.ts
+```
+
+---
+
+## Similarity engine
+
+Duplicate detection uses a weighted multi-rule scoring engine rather than a hard composite key. Each candidate event within ±7 days of the submission is scored against four rules:
+
+| Rule | Weight | Logic |
+|------|--------|-------|
+| `exact` | short-circuit | title + venue + same day — returns 1.0 immediately |
+| `title` | 0.5 | Word overlap (Jaccard) + substring containment |
+| `venue` | 0.3 | Word overlap + substring containment |
+| `date` | 0.2 | Linear decay over 7-day window |
+
+Candidates below 0.3 aggregate score are discarded. Scores are a weighted average of applicable rules.
+
+**Adding a new rule:** implement `SimilarityRule`, add it to `IngestionModule` providers, inject it into the `SIMILARITY_RULES` factory. No changes to `SimilarityEngine`.
+
+---
+
+## Phase roadmap
+
+| Phase | What changes |
+|-------|-------------|
+| **Current (Phase 1)** | Manual curation + crowdsourced submission via this API |
+| **Phase 2** | Auth module (JWT), moderator queue, push notifications via FCM |
+| **Phase 3** | Organiser dashboard — a new `AggregationSource` implementation, zero pipeline changes |
