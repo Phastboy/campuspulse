@@ -46,9 +46,6 @@ export function getComparableDateFromEvent(event: Event): Date {
     return event.createdAt;
   }
 
-  this.logger?.warn?.(
-    `Could not extract date from event ${event.id}, using current date`,
-  );
   return new Date();
 }
 
