@@ -119,20 +119,36 @@ export class EventsService {
         updateData.type ||
         updateData.date ||
         updateData.endTime ||
-        updateData.endDate
+        updateData.endDate ||
+        updateData.startTime
       ) {
         const newType = updateData.type ?? event.datetime.type;
 
         if (newType === 'specific') {
           // Building a SpecificDateTime
           const current = event.datetime as SpecificDateTime;
+
+          // When switching to specific type, ensure we have a startTime
+          if (
+            newType !== event.datetime.type &&
+            !updateData.startTime &&
+            !(current as any).startTime
+          ) {
+            throw new BadRequestException(
+              'startTime is required when creating or updating to a specific datetime event',
+            );
+          }
+
           event.datetime = {
             type: 'specific',
             date: updateData.date ? new Date(updateData.date) : current.date,
+            startTime: updateData.startTime
+              ? new Date(updateData.startTime)
+              : (current as SpecificDateTime).startTime,
             endTime: updateData.endTime
               ? new Date(updateData.endTime)
-              : current.endTime,
-          } as SpecificDateTime;
+              : (current as SpecificDateTime).endTime,
+          };
         } else {
           // Building an AllDayDate
           const current = event.datetime as AllDayDate;
@@ -142,7 +158,7 @@ export class EventsService {
             endDate: updateData.endDate
               ? new Date(updateData.endDate)
               : current.endDate,
-          } as AllDayDate;
+          };
         }
       }
 
