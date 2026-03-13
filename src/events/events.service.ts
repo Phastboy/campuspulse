@@ -20,7 +20,7 @@ export class EventsService {
     @InjectRepository(Event)
     private readonly eventRepo: EntityRepository<Event>,
     private readonly em: EntityManager,
-  ) { }
+  ) {}
 
   async findAll(query: EventQueryDto): Promise<{
     items: Event[];
@@ -44,7 +44,6 @@ export class EventsService {
     }
 
     const total = await qb.clone().count('id', true);
-
 
     const items = await qb
       .select('*')
