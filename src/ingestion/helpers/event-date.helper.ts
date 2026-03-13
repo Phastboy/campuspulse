@@ -1,5 +1,13 @@
 import { Event } from '@events/entities/event.entity';
 
+/**
+ * Extracts a representative date from an Event by inspecting its datetime and createdAt fields.
+ *
+ * Handles multiple shapes: an object with a `date` property (string, `Date`, or numeric timestamp), a date string, or a `Date` instance. If no date can be extracted, logs a warning and falls back to the current date.
+ *
+ * @param event - The event object to extract the date from
+ * @returns A `Date` representing the event's datetime or `createdAt`; if neither yields a date, the current date is returned
+ */
 export function getComparableDateFromEvent(event: Event): Date {
   // If datetime is an object with a date property (from JSONB)
   if (event.datetime && typeof event.datetime === 'object') {
@@ -44,6 +52,11 @@ export function getComparableDateFromEvent(event: Event): Date {
   return new Date();
 }
 
+/**
+ * Determines whether two dates fall on the same calendar day.
+ *
+ * @returns `true` if both dates represent the same calendar day, `false` otherwise.
+ */
 export function isSameDay(date1: Date, date2: Date): boolean {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
