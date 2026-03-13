@@ -8,6 +8,15 @@ import mikroOrmConfig from './database/mikro-orm.config';
 import { validateConfig } from './config/validation';
 import { EventsModule } from '@events/events.module';
 
+/**
+ * Root application module.
+ *
+ * Wires together all feature modules and global infrastructure:
+ * - {@link ConfigModule} — environment variable loading and Zod validation
+ * - {@link MikroOrmModule} — PostgreSQL connection via MikroORM
+ * - {@link EventsModule} — published event CRUD and lifecycle
+ * - {@link IngestionModule} — event submission pipeline and similarity engine
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({

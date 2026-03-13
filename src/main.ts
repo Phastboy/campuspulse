@@ -13,18 +13,29 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { SwaggerSetup } from './swagger.config';
 import { AppConfig } from './config/validation';
 
-async function bootstrap() {
-  // Create app with structured logger
+/**
+ * Application entry point.
+ *
+ * Bootstraps the NestJS application, configures global middleware,
+ * registers Swagger (if enabled via env), and starts listening.
+ *
+ * Global setup applied here:
+ * - Structured JSON logger via {@link ConsoleLogger}
+ * - {@link ValidationPipe} — whitelist, forbid unknown properties, auto-transform
+ * - {@link AllExceptionsFilter} — normalised JSON error envelope for all exceptions
+ * - {@link SwaggerSetup} — optional basic-auth-protected API docs
+ * - CORS enabled (all origins) — tighten in production
+ */
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
     logger: new ConsoleLogger({ json: true, colors: true }),
   });
 
   const configService = app.get(ConfigService<AppConfig>);
 
-  const globalPrefix = configService.get('GLOBAL_PREFIX');
+  const globalPrefix = configService.get('GLOBAL_PREFIX') as string;
   app.setGlobalPrefix(globalPrefix);
 
-  // Global validation pipe for all DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -38,17 +49,22 @@ async function bootstrap() {
   SwaggerSetup.register(app, globalPrefix);
   app.enableCors();
 
-  const port = configService.get('PORT');
+  const port = configService.get('PORT') as number;
   await app.listen(port);
 
-  logNetwork(app, port);
+  logNetworkAddresses(app, port);
 }
 
 /**
- * Logs the network addresses the app is listening on
+ * Logs all non-loopback IPv4 addresses the HTTP server is reachable on.
+ * Falls back to a port-only message if network interfaces cannot be enumerated.
+ *
+ * @param app - The running NestJS application instance
+ * @param port - The port the server is bound to
  */
-function logNetwork(app: INestApplication, port: number) {
-  let addresses: string[] = [];
+function logNetworkAddresses(app: INestApplication, port: number): void {
+  const addresses: string[] = [];
+
   try {
     const interfaces = os.networkInterfaces();
     for (const iface of Object.values(interfaces)) {
@@ -59,23 +75,25 @@ function logNetwork(app: INestApplication, port: number) {
         }
       }
     }
-  } catch (err) {
+  } catch {
     Logger.warn(
-      'Could not enumerate network interfaces, skipping logging addresses.',
+      'Could not enumerate network interfaces, skipping address logging.',
       'Bootstrap',
     );
   }
 
-  // Default protocol is http
+  // NestJS does not expose the protocol directly; default to http in dev
   const protocol =
-    (app.getHttpAdapter().getInstance().server?.proto as string) || 'http';
+    (app.getHttpAdapter().getInstance().server?.proto as string | undefined) ??
+    'http';
+
   if (addresses.length > 0) {
-    addresses.forEach((address) => {
+    for (const address of addresses) {
       Logger.log(
         `App is listening at ${protocol}://${address}:${port}`,
         'Bootstrap',
       );
-    });
+    }
   } else {
     Logger.log(
       `App is listening on port ${port} (network addresses unavailable)`,
@@ -84,8 +102,7 @@ function logNetwork(app: INestApplication, port: number) {
   }
 }
 
-// Catch any bootstrap errors
-bootstrap().catch((err) => {
+bootstrap().catch((err: unknown) => {
   console.error('Failed to bootstrap application', err);
   process.exit(1);
 });
