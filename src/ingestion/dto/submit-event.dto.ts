@@ -6,6 +6,7 @@ import {
   IsDateString,
   ValidateIf,
   IsIn,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class SubmitEventDto {
@@ -17,6 +18,11 @@ export class SubmitEventDto {
 
   @IsDateString()
   date!: string;
+
+  @ValidateIf((o) => o.type === 'specific')
+  @IsNotEmpty()
+  @IsDateString()
+  startTime!: string;
 
   @ValidateIf((o) => o.type === 'specific')
   @IsOptional()
@@ -42,6 +48,7 @@ export class SubmitEventDto {
       datetime = {
         type: 'specific',
         date: new Date(this.date),
+        startTime: new Date(this.startTime),
         endTime: this.endTime ? new Date(this.endTime) : undefined,
       };
     } else {
@@ -64,6 +71,7 @@ export class SubmitEventDto {
       return {
         type: 'specific',
         date: new Date(this.date),
+        startTime: new Date(this.startTime),
         endTime: this.endTime ? new Date(this.endTime) : undefined,
       };
     }
