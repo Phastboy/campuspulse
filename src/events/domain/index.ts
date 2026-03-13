@@ -1,1 +1,2 @@
-export * from './event-submission.js';
+export * from './event-submission';
+export * from './event-summary';
