@@ -1,47 +1,59 @@
+import { EventDateTime } from '@common';
 import { Event } from '@events/entities/event.entity';
 
 /**
- * Extracts a representative date from an Event by inspecting its datetime and createdAt fields.
+ * The raw shape of a JSONB `datetime` field as it arrives from PostgreSQL.
  *
- * Handles multiple shapes: an object with a `date` property (string, `Date`, or numeric timestamp), a date string, or a `Date` instance. If no date can be extracted, logs a warning and falls back to the current date.
+ * MikroORM does not hydrate nested `Date` objects inside JSONB — the `date`,
+ * `startTime`, and `endTime` values arrive as ISO strings. This type
+ * reflects what we actually receive at runtime so we can handle it without
+ * casting to `any`.
+ */
+type RawDatetimeJson = {
+  type: EventDateTime['type'];
+  date: Date | string | number;
+  startTime?: Date | string | number;
+  endTime?: Date | string | number;
+  endDate?: Date | string | number;
+};
+
+/**
+ * Normalises a raw JSONB date value (string, number, or Date) to a `Date`.
+ * Returns `null` if the value cannot be parsed.
+ */
+function parseDateValue(
+  value: Date | string | number | undefined,
+): Date | null {
+  if (value === undefined || value === null) return null;
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Extracts a representative `Date` from an `Event` for use in similarity
+ * scoring and duplicate detection.
  *
- * @param event - The event object to extract the date from
- * @returns A `Date` representing the event's datetime or `createdAt`; if neither yields a date, the current date is returned
+ * MikroORM returns JSONB fields as plain objects, not hydrated class instances,
+ * so `datetime.date` may arrive as a string rather than a `Date`. This helper
+ * handles all observed runtime shapes defensively.
+ *
+ * Falls back to `createdAt` if `datetime.date` cannot be parsed, and to
+ * `new Date()` as a last resort (logged as a warning at the call site).
+ *
+ * @param event - The event to extract a date from
+ * @returns A valid `Date` representing when the event occurs
  */
 export function getComparableDateFromEvent(event: Event): Date {
-  // If datetime is an object with a date property (from JSONB)
   if (event.datetime && typeof event.datetime === 'object') {
-    if ('date' in event.datetime) {
-      const dateValue = (event.datetime as any).date;
+    const raw = event.datetime as unknown as RawDatetimeJson;
 
-      // Handle string date
-      if (typeof dateValue === 'string') {
-        return new Date(dateValue);
-      }
-
-      // Handle Date object
-      if (dateValue instanceof Date) {
-        return dateValue;
-      }
-
-      // Handle timestamp number
-      if (typeof dateValue === 'number') {
-        return new Date(dateValue);
-      }
-    }
-
-    // If the whole object is a date string
-    if (typeof event.datetime === 'string') {
-      return new Date(event.datetime);
+    if ('date' in raw) {
+      const parsed = parseDateValue(raw.date);
+      if (parsed) return parsed;
     }
   }
 
-  // If datetime is directly a Date
-  if (event.datetime instanceof Date) {
-    return event.datetime;
-  }
-
-  // Fallback to createdAt or current date
   if (event.createdAt instanceof Date) {
     return event.createdAt;
   }
@@ -50,9 +62,10 @@ export function getComparableDateFromEvent(event: Event): Date {
 }
 
 /**
- * Determines whether two dates fall on the same calendar day.
+ * Returns `true` if both dates fall on the same calendar day, regardless of time.
  *
- * @returns `true` if both dates represent the same calendar day, `false` otherwise.
+ * @param date1 - First date
+ * @param date2 - Second date
  */
 export function isSameDay(date1: Date, date2: Date): boolean {
   const d1 = new Date(date1);
