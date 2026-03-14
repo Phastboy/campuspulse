@@ -1,0 +1,94 @@
+# .github/workflows/ci.yml
+# CI pipeline — runs on every pull request targeting main.
+#
+# Jobs:
+#   check  — type-check + lint (fast feedback, no Docker needed)
+#   build  — verifies the Docker image builds successfully
+#
+# The Docker build job depends on check passing, so a broken TypeScript
+# compile or lint error blocks the image build entirely.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  # Cancel in-progress runs for the same PR — saves CI minutes
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── Type-check and lint ─────────────────────────────────────────────────────
+  check:
+    name: Type-check & lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        # tsc --noEmit is fast — catches type errors without emitting files
+        run: pnpm exec tsc --noEmit --project tsconfig.build.json
+
+      - name: Lint
+        run: pnpm lint
+
+
+  # ── Docker build ────────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check     # Only run if type-check and lint pass
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: production
+          push: false           # Build only — no registry push on PRs
+          tags: campuspulse:pr-${{ github.event.pull_request.number }}
+          # Cache layers between runs using GitHub Actions cache
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+          # Build args passed through to the Dockerfile
+          build-args: |
+            NODE_ENV=production

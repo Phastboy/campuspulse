@@ -1,0 +1,30 @@
+# Dependencies — reinstalled inside the build stage
+node_modules/
+.pnpm-store/
+
+# Build output — produced inside the container
+dist/
+coverage/
+
+# Dev tooling
+.git/
+.github/
+temp/
+*.log
+*.tsbuildinfo
+
+# Environment files — injected at runtime, never baked in
+.env
+.env.*
+!.env.example
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test files — not needed in the image
+test/
+**/*.spec.ts
+**/*.e2e-spec.ts
