@@ -1,0 +1,48 @@
+# docker-compose.prod.yml — production overrides
+# Extend the base compose file:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Key differences from dev:
+#   - Builds the production stage (no source, no devDeps)
+#   - No source volume mounts
+#   - App port not exposed to host — all traffic through nginx
+#   - Resource limits prevent one container starving others
+#   - always restart policy
+#   - Postgres port not exposed to host
+
+services:
+
+  postgres:
+    restart: always
+    ports: !reset []   # Remove the host port binding from dev compose
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+        reservations:
+          memory: 256m
+
+  app:
+    build:
+      context: .
+      target: production   # Use the minimal production stage
+    restart: always
+    command: []            # Use the ENTRYPOINT from the Dockerfile (runs migrations)
+    volumes: !reset []     # Remove source mounts — image contains compiled dist/
+    ports: !reset []       # Remove direct port exposure — nginx is the only entry point
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512m
+        reservations:
+          memory: 128m
+
+  nginx:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 64m
