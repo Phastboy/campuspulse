@@ -24,10 +24,8 @@ export class SwaggerSetup {
    * Does nothing when Swagger is disabled — safe to call unconditionally.
    *
    * @param app - The running NestJS application instance
-   * @param globalPrefix - The global route prefix (e.g. `"api"`) — used to
-   *   correctly configure paths relative to the app root
    */
-  static register(app: INestApplication, globalPrefix: string): void {
+  static register(app: INestApplication): void {
     const config = app.get(ConfigService<AppConfig>);
 
     const enabled = config.get('SWAGGER_ENABLED');
