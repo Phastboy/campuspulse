@@ -6,7 +6,6 @@ import { IngestionModule } from './ingestion/ingestion.module';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import mikroOrmConfig from './database/mikro-orm.config';
 import { validateConfig } from './config/validation';
-import { EventsModule } from '@events/events.module';
 
 /**
  * Root application module.
@@ -25,7 +24,6 @@ import { EventsModule } from '@events/events.module';
       validate: validateConfig,
     }),
     MikroOrmModule.forRoot(mikroOrmConfig),
-    EventsModule,
     IngestionModule,
   ],
   controllers: [AppController],
