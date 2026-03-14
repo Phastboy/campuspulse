@@ -35,7 +35,7 @@ export interface EventSummary {
    *
    * ⚠️ When this summary originates from a database query, `Date` fields
    * inside `datetime` may arrive as ISO strings due to JSONB deserialisation.
-   * Use {@link getComparableDateFromEvent} if you need a reliable `Date`.
+   * Use {@link getComparableDateFromSummary} if you need a reliable `Date`.
    */
   datetime: EventDateTime;
 
