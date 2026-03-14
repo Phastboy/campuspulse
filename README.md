@@ -236,6 +236,121 @@ OpenAPI JSON is at `http://localhost:3000/api/docs-json`.
 
 ---
 
+
+---
+
+## Infrastructure
+
+### Docker
+
+The application ships as a multi-stage Docker image.
+
+| Stage | Purpose |
+|-------|---------|
+| `builder` | Installs all deps, compiles TypeScript via `nest build` |
+| `production` | Installs prod deps only, copies `dist/`, runs as non-root user |
+
+The build fails at the `pnpm build` step if TypeScript has errors — a broken app cannot produce a successful image.
+
+```bash
+# Build the production image
+docker build --target production -t campuspulse:latest .
+
+# Run it standalone (needs a DATABASE_URL in env)
+docker run -p 3000:3000 --env-file .env campuspulse:latest
+```
+
+**`docker-entrypoint.sh`** runs automatically on container start: checks for pending MikroORM migrations, applies them, then starts the app with `node dist/main`. The container exits non-zero if migrations fail — it will not start with a mismatched schema.
+
+### Docker Compose — local development
+
+```bash
+# Copy and fill in environment variables
+cp .env.example .env
+
+# Start postgres + app (hot reload) + nginx
+docker compose up -d
+
+# Follow logs
+docker compose logs -f app
+
+# Stop everything
+docker compose down
+```
+
+The stack:
+- **postgres** — PostgreSQL 16, data persisted in a named volume, health-checked before the app starts
+- **app** — runs `pnpm dev` (hot reload via `nest --watch`), source mounted read-only so changes are picked up without rebuilding
+- **nginx** — listens on port 80, proxies to the app on the internal network
+
+The app port (`3000`) is exposed directly to the host for debugging. In production it is removed by the prod override.
+
+### Docker Compose — production
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+The prod override:
+- Targets the `production` Docker stage (minimal image, no source)
+- Removes source volume mounts
+- Removes the direct app port exposure — all traffic goes through nginx
+- Removes the postgres host port — database is not reachable from outside the container network
+- Adds CPU and memory limits to all three services
+- Sets `restart: always`
+
+### Nginx
+
+Nginx sits in front of the app and handles:
+
+| Concern | Config |
+|---------|--------|
+| Rate limiting | 60 req/min global; 10 req/min on `/api/ingestion/` (scoring is expensive) |
+| Gzip | Enabled for `application/json`, `text/*` at compression level 6 |
+| Security headers | `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` |
+| Proxy headers | `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto` forwarded to the app |
+| Keep-alive | 32 persistent upstream connections — avoids TCP handshake per request |
+| Timeouts | 30s read on ingestion, 15s on general routes, 5s connect |
+| Non-API traffic | Returns 404 JSON — no static files, no fallthrough |
+
+### Network topology
+
+```
+Internet
+   │
+   ▼
+ nginx (external network, port 80)
+   │
+   ▼
+  app (internal network, port 3000)
+   │
+   ▼
+postgres (internal network, port 5432)
+```
+
+The `internal` Docker network has `internal: true` — it has no outbound internet access. Postgres is never reachable from outside the Docker host in production.
+
+### CI — GitHub Actions
+
+The workflow runs on every pull request to `main`.
+
+```
+check (type-check + lint)
+   └── docker-build (builds production image)
+```
+
+**`check` job:**
+1. Installs deps from the frozen lockfile
+2. `tsc --noEmit` — type errors fail the PR
+3. `eslint` — lint errors fail the PR
+
+**`docker-build` job** (only runs if `check` passes):
+1. Builds the production Docker image targeting the `production` stage
+2. Does not push to a registry — the goal is to verify the image can be built
+3. Uses GitHub Actions layer cache so repeated builds are fast
+
+A PR cannot be merged (assuming branch protection) if TypeScript fails, lint fails, or the Docker image fails to build.
+
 ## Architecture
 
 The codebase is layered with enforced boundaries. Each layer may only depend inward — never outward or sideways across sibling modules.
