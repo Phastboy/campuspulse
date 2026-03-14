@@ -13,7 +13,7 @@ import { type EventDateTime } from '@common';
  * {@link EventDateTime} discriminated union without separate columns.
  * MikroORM does not hydrate nested `Date` objects inside JSONB — `datetime.date`
  * and `datetime.startTime` arrive as ISO strings at runtime. Use
- * {@link getComparableDateFromEvent} from the ingestion helpers when you need
+ * {@link getComparableDateFromSummary} from the ingestion helpers when you need
  * a reliable `Date` object from this field.
  */
 @Entity({ tableName: 'events' })
