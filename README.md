@@ -79,7 +79,7 @@ The ingestion pipeline handles all event submissions. It validates, scores for d
 Submit an event. Three possible outcomes:
 
 | `action` | Meaning | Next step |
-|----------|---------|-----------|
+|----------|---------|-----------| 
 | `created` | New event — no duplicates found. Published immediately. | Done. |
 | `linked` | Exact duplicate detected. Linked to existing event. | Done. |
 | `needs_decision` | Similar events found. Submitter must resolve. | Call `/ingestion/confirm`. |
@@ -127,7 +127,7 @@ curl -X POST http://localhost:3000/api/ingestion/submit \
         "matches": { "title": true, "venue": true, "date": true }
       }
     ],
-    "originalSubmission": { "title": "...", "type": "specific", ... }
+    "originalSubmission": { "title": "...", "type": "specific" }
   }
 }
 ```
@@ -159,7 +159,7 @@ curl -X POST http://localhost:3000/api/ingestion/confirm \
 #### `GET /api/events`
 
 ```bash
-# All upcoming events
+# All events
 curl http://localhost:3000/api/events
 
 # Filter by date range
@@ -197,7 +197,7 @@ curl -X PATCH http://localhost:3000/api/events/uuid \
   -H "Content-Type: application/json" \
   -d '{ "date": "2026-03-07", "type": "specific", "startTime": "2026-03-07T10:00:00.000Z" }'
 
-# Update venue
+# Update venue only
 curl -X PATCH http://localhost:3000/api/events/uuid \
   -H "Content-Type: application/json" \
   -d '{ "venue": "New Admin Block, Room 101" }'
@@ -236,56 +236,161 @@ OpenAPI JSON is at `http://localhost:3000/api/docs-json`.
 
 ---
 
+## Architecture
+
+The codebase is layered with enforced boundaries. Each layer may only depend inward — never outward or sideways across sibling modules.
+
+```
+HTTP (controllers, DTOs)
+      ↓
+Application (services)
+      ↓
+Domain (interfaces, domain types, errors)
+      ↓
+Infrastructure (repositories, ORM, transaction manager)
+```
+
+### Layer rules
+
+| Layer | May import from | May NOT import from |
+|-------|----------------|---------------------|
+| HTTP (controllers) | Application, Domain, `@common` | Infrastructure |
+| Application (services) | Domain, Ports, `@common` | Infrastructure directly, HTTP types |
+| Domain (types, errors, port interfaces) | `@common` only | Application, Infrastructure, HTTP |
+| Infrastructure (repositories) | Domain, ORM | Application, HTTP |
+
+### Ports and implementations
+
+Every cross-layer dependency flows through an interface (a "port"). Services declare what they need; modules wire in the concrete implementation at startup.
+
+| Port | Token | Implementation | Consumer(s) |
+|------|-------|---------------|-------------|
+| `IEventReader` | `EVENT_READER` | `MikroOrmEventRepository` | `EventsService` |
+| `IEventWriter` | `EVENT_WRITER` | `MikroOrmEventRepository` | `EventsService`, `IngestionService` |
+| `ICandidateRepository` | `CANDIDATE_REPOSITORY` | `MikroOrmEventRepository` | `SimilarityEngine` |
+| `ITransactionManager` | `TRANSACTION_MANAGER` | `MikroOrmTransactionManager` | `IngestionService` |
+| `ISimilarityEngine` | `SIMILARITY_ENGINE` | `SimilarityEngine` | `IngestionService` |
+
+`MikroOrmEventRepository` and `MikroOrmTransactionManager` are the only classes that import MikroORM. Swapping to Prisma means rewriting those two classes and nothing else.
+
+### Boundary fixes applied in this session
+
+**`PaginatedEvents` moved to `events/domain/`**
+Previously defined inside `events.service.ts` and imported by the port and repository — a port importing from a service. Domain types belong in `domain/`, not in service files.
+
+**`EventQuery` domain type introduced**
+`IEventReader.findAll` previously accepted `EventQueryDto` (an HTTP DTO). Port interfaces must use domain types only. `EventQuery` is the domain-level equivalent; the controller maps `EventQueryDto → EventQuery` at the HTTP boundary.
+
+**`EventDateTimeMapper` moved to `ingestion/mappers/`**
+Previously lived in `events/mappers/` but imported `SubmitEventDto` from `ingestion/dto/` — an `events/` file depending on `ingestion/`. It maps ingestion DTOs so it belongs in `ingestion/`.
+
+**`EventFieldsDto` base class introduced in `common/dto/`**
+`UpdateEventDto` (events module) extended `SubmitEventDto` (ingestion module) — a cross-module DTO dependency. Both now extend `EventFieldsDto` from `common/`. Neither module depends on the other.
+
+**`InvalidDatetimeError` introduced in `events/domain/`**
+`EventDateTimeAssembler` (a domain mapper) threw `BadRequestException` — an NestJS HTTP class. Domain logic must not depend on HTTP frameworks. The assembler now throws `InvalidDatetimeError` (a plain `Error` subclass). `EventsService` catches it and translates to `BadRequestException` at the HTTP boundary.
+
+**`ICandidateRepository` returns `EventSummary[]` not `Event[]`**
+The previous contract returned the full ORM entity to ingestion consumers. Ingestion has no business knowing about the `Event` entity class. The repository now projects `Event → EventSummary` internally; `SimilarityEngine` no longer imports the entity.
+
+### Dependency graph
+
+```
+IngestionController
+  └── IngestionService
+        ├── ISimilarityEngine    ←── SimilarityEngine
+        │                              └── ICandidateRepository ←── MikroOrmEventRepository
+        ├── IEventWriter         ←── MikroOrmEventRepository
+        ├── ITransactionManager  ←── MikroOrmTransactionManager
+        └── EventDateTimeMapper  (ingestion/mappers — maps ingestion DTOs)
+
+EventsController
+  └── EventsService
+        ├── IEventReader   ←── MikroOrmEventRepository
+        ├── IEventWriter   ←── MikroOrmEventRepository
+        └── EventDateTimeAssembler  (pure domain — no HTTP imports)
+```
+
+No arrow crosses a module boundary pointing at a concrete class. No port imports from a service. No domain class imports from an HTTP framework.
+
+---
+
 ## Project structure
 
 ```
 src/
 ├── common/
-│   ├── datetime/           # EventDateTime union type (SpecificDateTime | AllDayDate)
-│   ├── dto/                # ApiResponse wrapper
-│   └── filters/            # Global HTTP exception filter
+│   ├── constants/     # DATETIME_TYPES, SUBMISSION_DECISIONS
+│   ├── datetime/      # EventDateTime union, DateParseResult
+│   ├── dto/
+│   │   ├── api-response.dto.ts    # ApiResponse<T> envelope
+│   │   └── event-fields.dto.ts    # Shared base DTO (events + ingestion extend this)
+│   ├── filters/       # AllExceptionsFilter
+│   └── ports/
+│       └── transaction-manager.port.ts   # ITransactionManager
 ├── config/
-│   └── validation.ts       # Zod schema — validates all env vars at startup
+│   └── validation.ts              # Zod env schema
 ├── database/
-│   ├── migrations/         # MikroORM migration files
+│   ├── migrations/
 │   └── mikro-orm.config.ts
 ├── events/
-│   ├── domain/             # EventSubmission interface
-│   ├── dto/                # EventQueryDto, UpdateEventDto
-│   ├── entities/           # Event entity (datetime stored as JSONB)
-│   ├── events.controller.ts
-│   ├── events.service.ts
+│   ├── domain/
+│   │   ├── event-query.ts         # Domain query params (used by IEventReader)
+│   │   ├── event-submission.ts    # Normalised submission flowing through the pipeline
+│   │   ├── event-summary.ts       # Minimal ORM-free projection used by ingestion
+│   │   ├── invalid-datetime.error.ts   # Domain error — no HTTP dependency
+│   │   └── paginated-events.ts    # Shared result type for IEventReader + service
+│   ├── dto/
+│   │   ├── create-event.dto.ts
+│   │   ├── event-query.dto.ts     # HTTP input; controller maps this → EventQuery
+│   │   └── update-event.dto.ts    # extends EventFieldsDto from common/
+│   ├── entities/
+│   │   └── event.entity.ts        # MikroORM entity
+│   ├── mappers/
+│   │   └── event-datetime.assembler.ts  # Merges partial update onto EventDateTime
+│   ├── ports/
+│   │   ├── event-reader.port.ts   # IEventReader — uses EventQuery + EventSummary
+│   │   └── event-writer.port.ts   # IEventWriter
+│   ├── repositories/
+│   │   ├── mikro-orm-event.repository.ts     # Sole MikroORM impl — projects Event→EventSummary
+│   │   └── mikro-orm-transaction-manager.ts  # Wraps em.transactional
+│   ├── events.controller.ts  # Maps EventQueryDto→EventQuery; HTTP boundary
+│   ├── events.service.ts     # Catches InvalidDatetimeError → BadRequestException
 │   └── events.module.ts
-├── ingestion/
-│   ├── dto/                # SubmitEventDto, ConfirmSubmissionDto, SubmitResponseDto
-│   ├── helpers/            # getComparableDateFromEvent, isSameDay
-│   ├── interfaces/         # SimilarityRule, SimilarityContext
-│   ├── rules/              # ExactMatchRule, TitleSimilarityRule, VenueSimilarityRule, DateProximityRule
-│   ├── ingestion.controller.ts
-│   ├── ingestion.service.ts
-│   ├── ingestion.module.ts
-│   └── similarity-engine.service.ts
-├── app.module.ts
-├── main.ts
-└── swagger.config.ts
+└── ingestion/
+    ├── dto/
+    │   ├── confirm-submission.dto.ts
+    │   ├── ingestion-result.dto.ts
+    │   ├── similarity.dto.ts
+    │   └── submit-event.dto.ts    # extends EventFieldsDto from common/
+    ├── helpers/
+    │   └── event-date.helper.ts   # getComparableDateFromSummary
+    ├── interfaces/
+    │   └── similarity-rule.interface.ts   # SimilarityRule, SimilarityContext
+    ├── mappers/
+    │   └── event-datetime.mapper.ts   # Maps SubmitEventDto → EventSubmission
+    ├── ports/
+    │   ├── candidate-repository.port.ts  # ICandidateRepository → returns EventSummary[]
+    │   └── similarity-engine.port.ts     # ISimilarityEngine
+    ├── rules/
+    │   └── …
+    ├── ingestion.controller.ts
+    ├── ingestion.service.ts    # Zero ORM imports; zero cross-module mapper imports
+    ├── ingestion.module.ts     # Imports EventsModule only; no MikroOrmModule
+    └── similarity-engine.service.ts  # Operates entirely on EventSummary
 ```
-
----
-
 ## Similarity engine
 
-Duplicate detection uses a weighted multi-rule scoring engine rather than a hard composite key. Each candidate event within ±7 days of the submission is scored against four rules:
+Duplicate detection uses a weighted multi-rule scoring engine. Each candidate event within ±7 days of the submission is scored against four rules:
 
 | Rule | Weight | Logic |
 |------|--------|-------|
-| `exact` | short-circuit | title + venue + same day — returns 1.0 immediately |
-| `title` | 0.5 | Word overlap (Jaccard) + substring containment |
-| `venue` | 0.3 | Word overlap + substring containment |
+| `exact` | short-circuit | title + venue + same day → 1.0 immediately |
+| `title` | 0.5 | Jaccard word overlap + substring containment |
+| `venue` | 0.3 | Jaccard word overlap + substring containment |
 | `date` | 0.2 | Linear decay over 7-day window |
 
 Candidates below 0.3 aggregate score are discarded. Scores are a weighted average of applicable rules.
-
-**Adding a new rule:** implement `SimilarityRule`, add it to `IngestionModule` providers, inject it into the `SIMILARITY_RULES` factory. No changes to `SimilarityEngine`.
 
 ---
 

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { EventsModule } from '../events/events.module';
 import { IngestionController } from './ingestion.controller';
 import { IngestionService } from './ingestion.service';
 import { SimilarityEngine } from './similarity-engine.service';
@@ -7,34 +7,29 @@ import { TitleSimilarityRule } from './rules/title-similarity.rule';
 import { VenueSimilarityRule } from './rules/venue-similarity.rule';
 import { DateProximityRule } from './rules/date-proximity.rule';
 import { ExactMatchRule } from './rules/exact-match.rule';
-import { Event } from '../events/entities/event.entity';
+import { EventDateTimeMapper } from './mappers/event-datetime.mapper';
+import { SIMILARITY_ENGINE } from './ports/similarity-engine.port';
 
 /**
  * Feature module for the event ingestion pipeline.
  *
- * Owns the two-step submission flow (`submit` → `confirm`) and the similarity
- * engine that powers duplicate detection.
+ * Imports {@link EventsModule} to receive `EVENT_WRITER`, `CANDIDATE_REPOSITORY`,
+ * and `TRANSACTION_MANAGER` via its exports.
  *
- * **Similarity rules** are registered as individual providers and collected
- * into the `SIMILARITY_RULES` injection token via a factory. The order in
- * the array controls evaluation order inside `SimilarityEngine.scoreCandidate`,
- * though the `"exact"` rule is always short-circuited first regardless of
- * position.
+ * No direct MikroORM or entity imports — all infrastructure comes through
+ * the exported tokens from EventsModule.
  *
- * **Adding a new rule:**
- * 1. Create a class implementing {@link SimilarityRule} (mark it `@Injectable()`)
- * 2. Add it to `providers` below
- * 3. Add it to the `useFactory` parameters and `inject` array
- *
- * No changes to {@link SimilarityEngine} are required.
+ * {@link EventDateTimeMapper} is now declared here (in `ingestion/mappers/`)
+ * rather than in `EventsModule` — it maps ingestion DTOs and belongs here.
  */
 @Module({
-  imports: [MikroOrmModule.forFeature([Event])],
+  imports: [EventsModule],
   controllers: [IngestionController],
   providers: [
     IngestionService,
+    EventDateTimeMapper,
     SimilarityEngine,
-    // ── Similarity rules ──────────────────────────────────────────────────
+    { provide: SIMILARITY_ENGINE, useExisting: SimilarityEngine },
     TitleSimilarityRule,
     VenueSimilarityRule,
     DateProximityRule,
@@ -42,16 +37,16 @@ import { Event } from '../events/entities/event.entity';
     {
       provide: 'SIMILARITY_RULES',
       useFactory: (
+        exact: ExactMatchRule,
         title: TitleSimilarityRule,
         venue: VenueSimilarityRule,
         date: DateProximityRule,
-        exact: ExactMatchRule,
-      ) => [title, venue, date, exact],
+      ) => [exact, title, venue, date],
       inject: [
+        ExactMatchRule,
         TitleSimilarityRule,
         VenueSimilarityRule,
         DateProximityRule,
-        ExactMatchRule,
       ],
     },
   ],
