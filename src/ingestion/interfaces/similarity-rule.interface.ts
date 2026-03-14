@@ -1,19 +1,33 @@
 import { EventSubmission } from '@events/domain';
-import { Event } from '../../events/entities/event.entity';
+import { EventSummary } from '@events/domain/event-summary';
 
 /**
  * All data available to a similarity rule during scoring.
  *
  * Passed to every {@link SimilarityRule.calculate} call. Rules should read
- * from this context rather than accepting individual parameters, so the
- * interface can be extended without changing rule signatures.
+ * only from this context — it contains exactly what rules need and nothing more.
+ *
+ * **ISP note:** `candidate` was previously typed as the full `Event` ORM entity,
+ * exposing `createdAt`, MikroORM decorators, and persistence-specific fields
+ * that no rule needs. Rules now receive {@link EventSummary} — the minimal
+ * persistence-free projection containing only `id`, `title`, `datetime`, and
+ * `venue`. Rules are decoupled from the ORM entity entirely.
+ *
+ * **LSP note:** this change also removes an implicit dependency on MikroORM
+ * from every rule — `EventSummary` can be constructed from any persistence
+ * layer, so rules remain substitutable regardless of ORM choice.
  */
 export interface SimilarityContext {
   /** The incoming event submission being evaluated. */
   submission: EventSubmission;
 
-  /** The existing database event being compared against. */
-  candidate: Event;
+  /**
+   * The existing event being compared against.
+   *
+   * Typed as {@link EventSummary} (not the full `Event` entity) so rules
+   * depend only on the minimal identity projection, not on ORM internals.
+   */
+  candidate: EventSummary;
 
   /**
    * Convenience alias for `submission.datetime.date`.
@@ -40,8 +54,8 @@ export interface SimilarityContext {
  * ```ts
  * @Injectable()
  * export class CategoryMatchRule implements SimilarityRule {
- *   name = 'category';
- *   weight = 0.15;
+ *   readonly name: string = 'category';
+ *   readonly weight: number = 0.15;
  *
  *   calculate(context: SimilarityContext): number {
  *     return context.submission.category === context.candidate.category ? 1 : 0;
@@ -60,17 +74,13 @@ export interface SimilarityRule {
   /**
    * Relative importance of this rule in the weighted average.
    * The engine normalises weights so they do not need to sum to 1.
-   *
-   * @example 0.5 // title similarity — highest weight
-   * @example 0.3 // venue similarity
-   * @example 0.2 // date proximity
    */
   readonly weight: number;
 
   /**
-   * Compute a similarity score between the submission and candidate.
+   * Computes a similarity score between the submission and candidate.
    *
-   * @param context - Scoring context with submission and candidate
+   * @param context - Scoring context with submission and candidate summary
    * @returns Score in `[0, 1]`. Values outside this range are clamped by the engine.
    */
   calculate(context: SimilarityContext): number;
@@ -79,17 +89,11 @@ export interface SimilarityRule {
    * Optional guard to skip this rule when its inputs are not available.
    *
    * When defined and returns `false`, the rule is excluded from scoring and
-   * does not contribute to the weighted average. This keeps the denominator
-   * accurate — a rule that cannot run should not reduce the total weight.
+   * does not contribute to the weighted average — the denominator stays
+   * accurate because an inapplicable rule contributes zero weight.
    *
    * @param context - Scoring context
    * @returns `true` if the rule should run; `false` to skip
-   *
-   * @example
-   * // Skip date scoring if submission date is invalid
-   * isApplicable(context) {
-   *   return context.submissionDate instanceof Date && !isNaN(context.submissionDate.getTime());
-   * }
    */
   isApplicable?(context: SimilarityContext): boolean;
 }

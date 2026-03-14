@@ -3,27 +3,16 @@ import {
   SimilarityRule,
   SimilarityContext,
 } from '../interfaces/similarity-rule.interface';
-import { getComparableDateFromEvent } from '../helpers/event-date.helper';
+import { getComparableDateFromSummary } from '../helpers/event-date.helper';
 
 /**
  * Similarity rule that scores how close two event dates are.
  *
- * Weight: `0.2` — date proximity is a supporting signal. A score of `1.0`
- * means same day; score decays linearly to `0` at 7 days apart. Events
- * further than 7 days apart score `0`.
+ * Weight: `0.2` — date proximity is a supporting signal. Score of `1.0`
+ * means same day; decays linearly to `0` at {@link DECAY_WINDOW_DAYS} days apart.
  *
- * This rule uses the ±7 day window that `SimilarityEngine` already uses
- * when fetching candidates, so scores will always be in `(0, 1]` for any
- * candidate that reaches this rule.
- *
- * Fails gracefully — if the candidate date cannot be extracted or is not a
- * valid `Date`, the rule returns `0` rather than throwing. This prevents a
- * single bad record from breaking the entire scoring run.
- *
- * @example
- * // Same day → 1.0
- * // 3.5 days apart → 0.5
- * // 7 days apart → 0.0
+ * Fails gracefully — if the candidate date cannot be extracted, returns `0`
+ * rather than throwing, preventing a single bad record from breaking the run.
  */
 @Injectable()
 export class DateProximityRule implements SimilarityRule {
@@ -35,16 +24,10 @@ export class DateProximityRule implements SimilarityRule {
   /** Number of days over which the score decays from 1 to 0. */
   private readonly DECAY_WINDOW_DAYS = 7;
 
-  /**
-   * Computes a date proximity score for the given submission/candidate pair.
-   *
-   * @param context - Scoring context containing the submission and candidate
-   * @returns Score in `[0, 1]` — `1.0` for same day, linearly decaying to `0` at 7 days
-   */
   calculate(context: SimilarityContext): number {
     try {
       const submissionDate = context.submission.datetime.date;
-      const candidateDate = getComparableDateFromEvent(context.candidate);
+      const candidateDate = getComparableDateFromSummary(context.candidate);
 
       if (!(submissionDate instanceof Date)) {
         this.logger.error(
@@ -53,9 +36,9 @@ export class DateProximityRule implements SimilarityRule {
         return 0;
       }
 
-      if (!(candidateDate instanceof Date)) {
+      if (!candidateDate) {
         this.logger.error(
-          `Candidate date is not a Date: ${typeof candidateDate} — value: ${JSON.stringify(candidateDate)}`,
+          `Could not extract date from candidate ${context.candidate.id}`,
         );
         return 0;
       }
@@ -80,13 +63,6 @@ export class DateProximityRule implements SimilarityRule {
     }
   }
 
-  /**
-   * Guards against invalid submission dates — skips scoring rather than
-   * producing meaningless results.
-   *
-   * @param context - Scoring context
-   * @returns `true` if `submissionDate` is a valid `Date`; `false` to skip this rule
-   */
   isApplicable(context: SimilarityContext): boolean {
     try {
       const { date } = context.submission.datetime;
