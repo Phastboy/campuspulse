@@ -78,22 +78,29 @@ jobs:
           node-version: 22
 
       - name: Regenerate docs
-        # The script itself always succeeds; the diff check below catches drift
         run: node scripts/generate-arch.mjs
 
-      - name: Fail if docs are out of date
-        # If generate-arch.mjs was not re-run after a structural change,
-        # this step fails the PR so the author knows to commit the updated file.
+      - name: Fail if docs are out of date (ignoring timestamp)
         run: |
-          if ! git diff --quiet docs/architecture.md; then
+          # Stage the generated file to compare
+          git add docs/architecture.md
+          
+          # Show what would be committed (for debugging)
+          echo "📊 Changes detected (if any):"
+          git diff --cached -- docs/architecture.md || true
+          
+          # Check if there are any changes other than the timestamp line
+          if git diff --cached --ignore-matching-lines='^_Generated: ' -- docs/architecture.md | grep -q .; then
             echo ""
-            echo "❌  docs/architecture.md is out of date."
-            echo "    Run  pnpm arch  and commit the updated file."
+            echo "❌  docs/architecture.md has meaningful changes."
+            echo "    Run  pnpm arch  locally and commit the updated file."
             echo ""
-            git diff docs/architecture.md
+            echo "📝 Meaningful changes found:"
+            git diff --cached -- docs/architecture.md
             exit 1
+          else
+            echo "✓  docs/architecture.md is up to date (timestamp changes ignored)."
           fi
-          echo "✓  docs/architecture.md is up to date."
 
 
   # ── Docker image build ──────────────────────────────────────────────────────
