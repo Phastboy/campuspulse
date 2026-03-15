@@ -10,9 +10,9 @@ import {
   SIMILARITY_ENGINE,
 } from './ports/similarity-engine.port';
 import {
-  type IEventWriter,
-  EVENT_WRITER,
-} from '@events/ports/event-writer.port';
+  type IEventCreator,
+  EVENT_CREATOR,
+} from '@events/ports/event-creator.port';
 import {
   type ITransactionManager,
   TRANSACTION_MANAGER,
@@ -22,8 +22,9 @@ import { EventDateTimeMapper } from './mappers/event-datetime.mapper';
 /**
  * Orchestrates the two-step event ingestion pipeline.
  *
- * Result objects are constructed via static factories on each result class —
- * no inline object literals, no repeated field names.
+ * Depends on {@link IEventCreator} — not the wider combined writer port —
+ * because ingestion only ever creates events. It has no business calling
+ * `save` or `remove`, and ISP says it should not be given access to them.
  */
 @Injectable()
 export class IngestionService {
@@ -32,7 +33,7 @@ export class IngestionService {
   constructor(
     @Inject(SIMILARITY_ENGINE)
     private readonly similarityEngine: ISimilarityEngine,
-    @Inject(EVENT_WRITER) private readonly eventWriter: IEventWriter,
+    @Inject(EVENT_CREATOR) private readonly eventCreator: IEventCreator,
     @Inject(TRANSACTION_MANAGER)
     private readonly transactionManager: ITransactionManager,
     private readonly mapper: EventDateTimeMapper,
@@ -54,7 +55,7 @@ export class IngestionService {
     }
 
     if (similar.length === 0) {
-      const event = await this.eventWriter.create(submission);
+      const event = await this.eventCreator.create(submission);
       return IngestionResultFactory.created(
         event.id,
         'Event published successfully',
@@ -90,7 +91,7 @@ export class IngestionService {
     }
 
     return this.transactionManager.run(async () => {
-      const event = await this.eventWriter.create(submission);
+      const event = await this.eventCreator.create(submission);
       return IngestionResultFactory.created(
         event.id,
         'Event published successfully',
@@ -101,10 +102,7 @@ export class IngestionService {
 
 /**
  * Factory for {@link IngestionResult} variants.
- *
- * **Factory pattern:** centralises construction of the three result types.
- * `IngestionService` calls these instead of building object literals inline,
- * so each result shape is assembled in exactly one place.
+ * Centralises construction so each result shape is assembled in one place.
  */
 class IngestionResultFactory {
   static created(eventId: string, message: string): CreatedResult {

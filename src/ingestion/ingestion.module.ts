@@ -13,7 +13,7 @@ import { SIMILARITY_ENGINE } from './ports/similarity-engine.port';
 /**
  * Feature module for the event ingestion pipeline.
  *
- * Imports {@link EventsModule} to receive `EVENT_WRITER`, `CANDIDATE_REPOSITORY`,
+ * Imports {@link EventsModule} to receive `EVENT_CREATOR`, `CANDIDATE_REPOSITORY`,
  * and `TRANSACTION_MANAGER` via its exports.
  *
  * No direct MikroORM or entity imports — all infrastructure comes through
