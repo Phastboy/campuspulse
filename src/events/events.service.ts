@@ -11,27 +11,23 @@ import { PaginatedEvents } from './domain/paginated-events';
 import { InvalidDatetimeError } from './domain/invalid-datetime.error';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { type IEventReader, EVENT_READER } from './ports/event-reader.port';
-import { type IEventWriter, EVENT_WRITER } from './ports/event-writer.port';
+import { type IEventMutator, EVENT_MUTATOR } from './ports/event-mutator.port';
 import { EventDateTimeAssembler } from './mappers/event-datetime.assembler';
 
 /**
  * Application service for published event operations.
  *
- * Translates HTTP-layer types (DTOs) into domain-layer types (EventQuery)
- * before calling ports — the port interface stays clean of HTTP concerns.
- * Catches {@link InvalidDatetimeError} from the domain assembler and
- * re-throws as {@link BadRequestException} — HTTP translation happens here,
- * at the boundary, not inside domain logic.
+ * Depends on {@link IEventReader} (queries) and {@link IEventMutator}
+ * (save/remove) — never on {@link IEventCreator}, because events are
+ * created through the ingestion pipeline, not here.
  */
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
 
   constructor(
-    @Inject(EVENT_READER)
-    private readonly eventReader: IEventReader,
-    @Inject(EVENT_WRITER)
-    private readonly eventWriter: IEventWriter,
+    @Inject(EVENT_READER) private readonly eventReader: IEventReader,
+    @Inject(EVENT_MUTATOR) private readonly eventMutator: IEventMutator,
     private readonly datetimeAssembler: EventDateTimeAssembler,
   ) {}
 
@@ -63,7 +59,7 @@ export class EventsService {
 
   async remove(id: string): Promise<void> {
     const event = await this.findOne(id);
-    await this.eventWriter.remove(event);
+    await this.eventMutator.remove(event);
   }
 
   async update(id: string, updateData: UpdateEventDto): Promise<Event> {
@@ -95,11 +91,10 @@ export class EventsService {
         );
       }
 
-      await this.eventWriter.save(event);
+      await this.eventMutator.save(event);
       this.logger.log(`Event ${id} updated successfully`);
       return event;
     } catch (error: unknown) {
-      // Translate domain errors to HTTP errors at this boundary
       if (error instanceof InvalidDatetimeError) {
         throw new BadRequestException(error.message);
       }
