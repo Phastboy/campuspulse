@@ -81,7 +81,9 @@ export function validateConfig(config: Record<string, unknown>): AppConfig {
         .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
         .join('\n');
 
-      throw new Error(`Configuration validation failed:\n${formattedErrors}`);
+      throw new Error(`Configuration validation failed:\n${formattedErrors}`, {
+        cause: error,
+      });
     }
     throw error;
   }

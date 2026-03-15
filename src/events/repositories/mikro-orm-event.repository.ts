@@ -46,7 +46,7 @@ export class MikroOrmEventRepository
       qb.andWhere(`e.datetime->>'type' = ?`, [query.type]);
     }
 
-    const total = await qb.clone().count('id', true);
+    const total = await qb.clone().count('id', true).getCount();
     const items = await qb
       .select('*')
       .orderBy({ [raw(`(e.datetime->>'date')::timestamptz`)]: 'ASC' })

@@ -22,7 +22,7 @@ dotenv.config();
  * - `disableForeignKeys: false` — foreign key constraints remain active during migration
  * - `allOrNothing: true` — each migration runs in a single transaction
  */
-const config: Options = {
+const config: Partial<Options> = {
   driver: PostgreSqlDriver,
   driverOptions: {
     connection: {
