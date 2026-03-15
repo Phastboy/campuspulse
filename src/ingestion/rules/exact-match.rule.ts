@@ -43,7 +43,7 @@ export class ExactMatchRule implements SimilarityRule {
     return titleMatch && venueMatch && dateMatch ? 1 : 0;
   }
 
-  isApplicable(_context: SimilarityContext): boolean {
+  isApplicable(): boolean {
     return true;
   }
 }

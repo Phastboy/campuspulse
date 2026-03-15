@@ -25,18 +25,15 @@ interface InternalScoredEvent {
 /**
  * Scores existing events against a new submission to detect duplicates.
  *
- * `ICandidateRepository.findCandidatesInWindow` now returns `EventSummary[]`
- * directly — no projection step needed here. The engine deals purely in
- * domain types; no ORM entity ever enters this class.
+ * Uses maximum parallelism - processes all candidates concurrently,
+ * and within each candidate, processes all rules concurrently.
  */
 @Injectable()
 export class SimilarityEngine implements ISimilarityEngine {
   private readonly logger = new Logger(SimilarityEngine.name);
-
-  private readonly CONCURRENCY_LIMIT: number = 10;
-  private readonly SIMILARITY_THRESHOLD: number = 0.3;
-  private readonly MATCH_THRESHOLD: number = 0.7;
-  private readonly SEARCH_WINDOW_DAYS: number = 7;
+  private readonly SIMILARITY_THRESHOLD = 0.3;
+  private readonly MATCH_THRESHOLD = 0.7;
+  private readonly SEARCH_WINDOW_DAYS = 7;
 
   constructor(
     @Inject(CANDIDATE_REPOSITORY)
@@ -48,6 +45,10 @@ export class SimilarityEngine implements ISimilarityEngine {
     this.logger.debug(`Rules: ${rules.map((r) => r.name).join(', ')}`);
   }
 
+  /**
+   * Finds events similar to a given submission.
+   * Processes all candidates and rules in parallel for maximum throughput.
+   */
   async findSimilar(submission: EventSubmission): Promise<ScoredEvent[]> {
     this.logger.log(`Finding similar events for: "${submission.title}"`);
 
@@ -70,9 +71,10 @@ export class SimilarityEngine implements ISimilarityEngine {
       this.logger.log(`${candidates.length} candidates in window`);
       if (!candidates.length) return [];
 
-      const scored = await this.mapConcurrent(candidates, async (candidate) => {
+      // Process ALL candidates in parallel, each with their own parallel rule execution
+      const scoringPromises = candidates.map(async (candidate) => {
         try {
-          return this.scoreCandidate(candidate, submission);
+          return await this.scoreCandidate(candidate, submission);
         } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : String(error);
@@ -82,6 +84,9 @@ export class SimilarityEngine implements ISimilarityEngine {
           return null;
         }
       });
+
+      // Wait for all candidates to be processed
+      const scored = await Promise.all(scoringPromises);
 
       const validResults = scored
         .filter(
@@ -102,9 +107,7 @@ export class SimilarityEngine implements ISimilarityEngine {
         }
       }
 
-      return validResults.map(
-        ({ ruleScores: _internal, ...publicFields }) => publicFields,
-      );
+      return validResults.map((r) => this.stripInternal(r));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error finding similar events: ${message}`);
@@ -112,85 +115,143 @@ export class SimilarityEngine implements ISimilarityEngine {
     }
   }
 
-  private async mapConcurrent<T, R>(
-    items: T[],
-    fn: (item: T) => Promise<R>,
-    concurrency: number = this.CONCURRENCY_LIMIT,
-  ): Promise<R[]> {
-    const results: R[] = [];
-    for (let i = 0; i < items.length; i += concurrency) {
-      const chunk = items.slice(i, i + concurrency);
-      results.push(...(await Promise.all(chunk.map(fn))));
-      if (items.length > 100) {
-        this.logger.debug(
-          `Scored ${Math.min(i + concurrency, items.length)}/${items.length}`,
-        );
-      }
-    }
-    return results;
-  }
-
-  private scoreCandidate(
+  /**
+   * Scores a single candidate against the submission with parallel rule execution.
+   * All rules for this candidate run concurrently.
+   */
+  private async scoreCandidate(
     candidate: EventSummary,
     submission: EventSubmission,
-  ): InternalScoredEvent {
+  ): Promise<InternalScoredEvent> {
     const context: SimilarityContext = {
       submission,
       candidate,
       submissionDate: submission.datetime.date,
     };
 
+    // Quick path: check exact match first (sequential since it's a fast return)
     const exactRule = this.rules.find((r) => r.name === 'exact');
-    if (exactRule && exactRule.calculate(context) === 1.0) {
-      this.logger.log(`Exact match: candidate ${candidate.id}`);
-      return {
-        event: candidate,
-        score: 1.0,
-        matches: { exact: true },
-        ruleScores: { exact: 1.0 },
-      };
+    if (exactRule) {
+      try {
+        if (exactRule.calculate(context) === 1.0) {
+          this.logger.log(`Exact match: candidate ${candidate.id}`);
+          return {
+            event: candidate,
+            score: 1.0,
+            matches: { exact: true },
+            ruleScores: { exact: 1.0 },
+          };
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Exact rule failed for ${candidate.id}: ${message}`);
+        // Continue with other rules even if exact fails
+      }
     }
 
-    let totalWeight = 0;
-    let weightedScore = 0;
-    const ruleScores: Record<string, number> = {};
-    const failedRules: string[] = [];
+    // Run all non-exact rules in parallel
+    const rulesToProcess = this.rules.filter((r) => r.name !== 'exact');
 
-    for (const rule of this.rules) {
-      if (rule.name === 'exact') continue;
+    const ruleResults = await Promise.allSettled(
+      rulesToProcess.map(async (rule) => {
+        // Check applicability first (if the rule has an applicability check)
+        if (rule.isApplicable) {
+          try {
+            if (!rule.isApplicable(context)) {
+              return {
+                name: rule.name,
+                applicable: false,
+                weight: rule.weight,
+              };
+            }
+          } catch (error: unknown) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            return {
+              name: rule.name,
+              applicable: false,
+              error: `Applicability check failed: ${message}`,
+              weight: rule.weight,
+            };
+          }
+        }
 
-      if (rule.isApplicable) {
+        // Calculate score
         try {
-          if (!rule.isApplicable(context)) continue;
+          const rawScore = rule.calculate(context);
+          const score = Math.max(0, Math.min(1, rawScore));
+          return {
+            name: rule.name,
+            applicable: true,
+            score,
+            weight: rule.weight,
+            rawScore,
+            isApplicable: true, // Flag that this rule was applicable
+          };
         } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : String(error);
-          this.logger.error(
-            `Applicability check failed for "${rule.name}": ${message}`,
-          );
-          failedRules.push(rule.name);
-          continue;
+          return {
+            name: rule.name,
+            applicable: true, // It was applicable but calculation failed
+            error: `Score calculation failed: ${message}`,
+            weight: rule.weight,
+          };
         }
+      }),
+    );
+
+    // Process results from all parallel rule executions
+    let totalWeight = 0;
+    let weightedScore = 0;
+    const ruleScores: Record<string, number> = {};
+    const matches: Record<string, boolean> = {};
+    const failedRules: string[] = [];
+
+    for (const result of ruleResults) {
+      if (result.status === 'rejected') {
+        failedRules.push(`Unknown rule (Promise rejected)`);
+        continue;
       }
 
-      try {
-        const rawScore = rule.calculate(context);
-        const score = Math.max(0, Math.min(1, rawScore));
-        if (rawScore !== score) {
-          this.logger.warn(
-            `Rule "${rule.name}" returned ${rawScore} — clamped to ${score}`,
-          );
-        }
-        ruleScores[rule.name] = score;
-        weightedScore += score * Math.abs(rule.weight);
-        totalWeight += Math.abs(rule.weight);
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
+      const ruleResult = result.value;
+
+      // Handle errors
+      if (ruleResult.error) {
         this.logger.error(
-          `Rule "${rule.name}" threw for candidate ${candidate.id}: ${message}`,
+          `Rule "${ruleResult.name}" failed: ${ruleResult.error}`,
         );
-        failedRules.push(rule.name);
+        failedRules.push(ruleResult.name);
+        continue;
       }
+
+      // Skip non-applicable rules
+      if (!ruleResult.applicable) {
+        this.logger.debug(`Rule "${ruleResult.name}" not applicable`);
+        continue;
+      }
+
+      // Process successful rule result
+      const score = ruleResult.score ?? 0;
+      const weight = Math.abs(ruleResult.weight);
+
+      ruleScores[ruleResult.name] = score;
+
+      if (score > this.MATCH_THRESHOLD) {
+        matches[ruleResult.name] = true;
+      }
+
+      // Log warning if score was clamped
+      if (ruleResult.rawScore !== undefined && ruleResult.rawScore !== score) {
+        this.logger.warn(
+          `Rule "${ruleResult.name}" returned ${ruleResult.rawScore} — clamped to ${score}`,
+        );
+      }
+
+      weightedScore += score * weight;
+      totalWeight += weight;
+
+      this.logger.debug(`Rule "${ruleResult.name}": score ${score.toFixed(3)}`);
     }
 
     if (failedRules.length > 0) {
@@ -200,10 +261,6 @@ export class SimilarityEngine implements ISimilarityEngine {
     }
 
     const finalScore = totalWeight > 0 ? weightedScore / totalWeight : 0;
-    const matches: Record<string, boolean> = {};
-    for (const [name, score] of Object.entries(ruleScores)) {
-      if (score > this.MATCH_THRESHOLD) matches[name] = true;
-    }
 
     return {
       event: candidate,
@@ -211,5 +268,13 @@ export class SimilarityEngine implements ISimilarityEngine {
       matches,
       ruleScores,
     };
+  }
+
+  /**
+   * Strips internal fields from scoring results for public consumption.
+   */
+  private stripInternal(scored: InternalScoredEvent): ScoredEvent {
+    const { ruleScores, ...publicFields } = scored;
+    return publicFields;
   }
 }
