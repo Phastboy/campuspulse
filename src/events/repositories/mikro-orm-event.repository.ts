@@ -8,24 +8,22 @@ import { EventSummary } from '../domain/event-summary';
 import { EventSubmission } from '../domain/event-submission';
 import { PaginatedEvents } from '../domain/paginated-events';
 import { IEventReader } from '../ports/event-reader.port';
-import { IEventWriter } from '../ports/event-writer.port';
+import { IEventCreator } from '../ports/event-creator.port';
+import { IEventMutator } from '../ports/event-mutator.port';
 import { ICandidateRepository } from '../../ingestion/ports/candidate-repository.port';
 
 /**
- * MikroORM implementation of {@link IEventReader}, {@link IEventWriter},
- * and {@link ICandidateRepository}.
+ * MikroORM implementation of all four event persistence ports.
  *
- * The only class in the codebase that imports MikroORM. All imports are from
- * the `events` module's own domain or from ingestion ports — no cross-module
- * service or DTO imports.
+ * Registered under four separate tokens — `EVENT_READER`, `EVENT_CREATOR`,
+ * `EVENT_MUTATOR`, and `CANDIDATE_REPOSITORY` — so each consumer receives
+ * only the interface it needs (Interface Segregation Principle).
  *
- * `findCandidatesInWindow` returns {@link EventSummary} projections, honouring
- * the updated {@link ICandidateRepository} contract that no longer exposes the
- * ORM entity to ingestion consumers.
+ * This is the only class in the codebase that imports MikroORM.
  */
 @Injectable()
 export class MikroOrmEventRepository
-  implements IEventReader, IEventWriter, ICandidateRepository
+  implements IEventReader, IEventCreator, IEventMutator, ICandidateRepository
 {
   constructor(
     @InjectRepository(Event)
@@ -49,7 +47,6 @@ export class MikroOrmEventRepository
     }
 
     const total = await qb.clone().count('id', true);
-
     const items = await qb
       .select('*')
       .orderBy({ [raw(`(e.datetime->>'date')::timestamptz`)]: 'ASC' })
@@ -77,7 +74,6 @@ export class MikroOrmEventRepository
       .where(`(e.datetime->>'date')::timestamptz BETWEEN ? AND ?`, [from, to])
       .getResult();
 
-    // Project to EventSummary — ingestion never receives ORM entities
     return events.map((e) => ({
       id: e.id,
       title: e.title,
@@ -86,13 +82,15 @@ export class MikroOrmEventRepository
     }));
   }
 
-  // ── IEventWriter ──────────────────────────────────────────────────────────
+  // ── IEventCreator ─────────────────────────────────────────────────────────
 
   async create(submission: EventSubmission): Promise<Event> {
     const event = this.repo.create({ ...submission, createdAt: new Date() });
     await this.em.persist(event).flush();
     return event;
   }
+
+  // ── IEventMutator ─────────────────────────────────────────────────────────
 
   async save(): Promise<void> {
     await this.em.flush();
