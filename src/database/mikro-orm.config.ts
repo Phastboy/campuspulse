@@ -24,10 +24,9 @@ dotenv.config();
  */
 const config: Partial<Options> = {
   driver: PostgreSqlDriver,
+  // v7: driverOptions go directly to pg.Pool — no `connection` nesting
   driverOptions: {
-    connection: {
-      keepAlive: true,
-    },
+    keepAlive: true,
   },
   clientUrl: process.env.DATABASE_URL,
   entities: ['./dist/**/*.entity.js'],
