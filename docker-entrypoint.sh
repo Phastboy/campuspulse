@@ -12,7 +12,7 @@ const config = require('./dist/database/mikro-orm.config').default;
 
 MikroORM.init(config).then(async (orm) => {
   const migrator = orm.migrator;
-  const pending = await migrator.getPendingMigrations();
+  const pending = await migrator.getPending();
   if (pending.length > 0) {
     console.log('[entrypoint] Applying', pending.length, 'pending migration(s)...');
     await migrator.up();
