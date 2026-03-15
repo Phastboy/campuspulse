@@ -94,7 +94,7 @@ export class MikroOrmEventRepository
     return event;
   }
 
-  async save(event: Event): Promise<void> {
+  async save(): Promise<void> {
     await this.em.flush();
   }
 
