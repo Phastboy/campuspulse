@@ -65,9 +65,12 @@ graph LR
   EventsService --> EventDateTimeAssembler
   IngestionController --> IngestionService
   IngestionService --> EventDateTimeMapper
+  SimilarityEngine --> RuleEvaluator
 
   subgraph ports_sg ["port interfaces"]
     ITransactionManager(["«if» ITransactionManager"])
+    IEventCreator(["«if» IEventCreator"])
+    IEventMutator(["«if» IEventMutator"])
     IEventReader(["«if» IEventReader"])
     IEventWriter(["«if» IEventWriter"])
     ICandidateRepository(["«if» ICandidateRepository"])
@@ -92,6 +95,8 @@ graph LR
   class VenueSimilarityRule svc
   class SimilarityEngine svc
   class ITransactionManager port
+  class IEventCreator port
+  class IEventMutator port
   class IEventReader port
   class IEventWriter port
   class ICandidateRepository port
@@ -120,6 +125,8 @@ graph TB
     EventsController["EventsController"]
     ConfirmSubmissionDto["ConfirmSubmissionDto"]
     CreatedResult["CreatedResult"]
+    LinkedResult["LinkedResult"]
+    NeedsDecisionResult["NeedsDecisionResult"]
     ScoredEvent["ScoredEvent"]
     SubmitEventDto["SubmitEventDto"]
     IngestionController["IngestionController"]
@@ -131,6 +138,7 @@ graph TB
     EventDateTimeAssembler["EventDateTimeAssembler"]
     EventDateTimeMapper["EventDateTimeMapper"]
     IngestionService["IngestionService"]
+    TextSimilarityRule["TextSimilarityRule"]
     DateProximityRule["DateProximityRule"]
     ExactMatchRule["ExactMatchRule"]
     TitleSimilarityRule["TitleSimilarityRule"]
@@ -140,6 +148,8 @@ graph TB
 
   subgraph port ["Port Layer · Interfaces · Tokens"]
     ITransactionManager(["«if» ITransactionManager"])
+    IEventCreator(["«if» IEventCreator"])
+    IEventMutator(["«if» IEventMutator"])
     IEventReader(["«if» IEventReader"])
     IEventWriter(["«if» IEventWriter"])
     ICandidateRepository(["«if» ICandidateRepository"])
@@ -179,6 +189,8 @@ graph TB
   class EventsController http
   class ConfirmSubmissionDto http
   class CreatedResult http
+  class LinkedResult http
+  class NeedsDecisionResult http
   class ScoredEvent http
   class SubmitEventDto http
   class IngestionController http
@@ -187,12 +199,15 @@ graph TB
   class EventDateTimeAssembler app
   class EventDateTimeMapper app
   class IngestionService app
+  class TextSimilarityRule app
   class DateProximityRule app
   class ExactMatchRule app
   class TitleSimilarityRule app
   class VenueSimilarityRule app
   class SimilarityEngine app
   class ITransactionManager port
+  class IEventCreator port
+  class IEventMutator port
   class IEventReader port
   class IEventWriter port
   class ICandidateRepository port
@@ -213,7 +228,8 @@ graph TB
 | Port Interface | Injection Token | Implementation | Module |
 |---------------|----------------|---------------|--------|
 | `IEventReader` | `EVENT_READER` | `MikroOrmEventRepository` | `events` |
-| `IEventWriter` | `EVENT_WRITER` | `MikroOrmEventRepository` | `events` |
+| `IEventCreator` | `EVENT_CREATOR` | `MikroOrmEventRepository` | `events` |
+| `IEventMutator` | `EVENT_MUTATOR` | `MikroOrmEventRepository` | `events` |
 | `ICandidateRepository` | `CANDIDATE_REPOSITORY` | `MikroOrmEventRepository` | `events` |
 | `ITransactionManager` | `TRANSACTION_MANAGER` | `MikroOrmTransactionManager` | `events` |
 | `ISimilarityEngine` | `SIMILARITY_ENGINE` | `SimilarityEngine` | `ingestion` |
@@ -232,4 +248,4 @@ graph TB
 
 ---
 
-_Generated: 2026-03-14T19:13:16.903Z_
+_Generated: 2026-03-15T03:49:50.110Z_
