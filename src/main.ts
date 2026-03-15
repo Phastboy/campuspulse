@@ -82,10 +82,9 @@ function logNetworkAddresses(app: INestApplication, port: number): void {
     );
   }
 
-  // NestJS does not expose the protocol directly; default to http in dev
-  const protocol =
-    (app.getHttpAdapter().getInstance().server?.proto as string | undefined) ??
-    'http';
+  // NestJS does not expose the protocol through a public API; default to http.
+  // In production, the protocol is handled by the reverse proxy (nginx).
+  const protocol = 'http';
 
   if (addresses.length > 0) {
     for (const address of addresses) {

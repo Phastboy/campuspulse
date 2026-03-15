@@ -28,7 +28,7 @@ export class SwaggerSetup {
   static register(app: INestApplication): void {
     const config = app.get(ConfigService<AppConfig>);
 
-    const enabled = config.get('SWAGGER_ENABLED');
+    const enabled = config.get<boolean>('SWAGGER_ENABLED');
     if (!enabled) return;
 
     const username = config.get('SWAGGER_USER') as string;
