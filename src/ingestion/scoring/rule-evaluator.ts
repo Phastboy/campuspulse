@@ -66,7 +66,7 @@ export class RuleEvaluator {
 
   // ── Private ───────────────────────────────────────────────────────────────
 
-  private async runRule(
+  private runRule(
     rule: SimilarityRule,
     context: SimilarityContext,
   ): Promise<RuleOutcome | null> {
@@ -74,14 +74,14 @@ export class RuleEvaluator {
       try {
         if (!rule.isApplicable(context)) {
           this.logger.debug(`Rule "${rule.name}" not applicable`);
-          return null;
+          return Promise.resolve(null);
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         this.logger.error(
           `Applicability check failed for "${rule.name}": ${message}`,
         );
-        return null;
+        return Promise.resolve(null);
       }
     }
 
@@ -94,12 +94,12 @@ export class RuleEvaluator {
       );
     }
 
-    return {
+    return Promise.resolve({
       name: rule.name,
       score,
       weight: Math.abs(rule.weight),
       matched: score > this.MATCH_THRESHOLD,
-    };
+    });
   }
 
   private aggregate(
