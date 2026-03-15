@@ -16,4 +16,7 @@ export { CreatedResult, LinkedResult, NeedsDecisionResult };
  *   case 'needs_decision': showDialog(result.similar, result.originalSubmission); break;
  * }
  */
-export type IngestionResult = CreatedResult | LinkedResult | NeedsDecisionResult;
+export type IngestionResult =
+  | CreatedResult
+  | LinkedResult
+  | NeedsDecisionResult;
