@@ -13,24 +13,17 @@ import {
 import { type ISimilarityEngine } from './ports/similarity-engine.port';
 import { RuleEvaluator } from './scoring/rule-evaluator';
 
-/** Internal result with diagnostic ruleScores — never returned to callers. */
-interface InternalScoredEvent {
-  event: EventSummary;
-  score: number;
-  matches: Record<string, boolean>;
-  ruleScores: Record<string, number>;
-}
-
 /**
  * Orchestrates duplicate detection for a submission.
  *
- * Responsibilities (exactly three):
+ * Responsibilities:
  * 1. Build the candidate search window
  * 2. Score each candidate via {@link RuleEvaluator} (parallel)
- * 3. Filter, sort, and strip internal diagnostics from results
+ * 3. Filter and sort results
  *
- * Rule execution logic lives in {@link RuleEvaluator}.
- * Candidate retrieval lives in {@link ICandidateRepository}.
+ * There is no internal enriched type here — {@link RuleEvaluator} returns
+ * fully formed {@link ScoredEvent} objects. Diagnostic `ruleScores` are
+ * logged inside the evaluator and never surface here or above.
  */
 @Injectable()
 export class SimilarityEngine implements ISimilarityEngine {
@@ -73,7 +66,7 @@ export class SimilarityEngine implements ISimilarityEngine {
 
       const results = scored
         .filter(
-          (r): r is InternalScoredEvent =>
+          (r): r is ScoredEvent =>
             r !== null && r.score > this.SIMILARITY_THRESHOLD,
         )
         .sort((a, b) => b.score - a.score);
@@ -81,17 +74,19 @@ export class SimilarityEngine implements ISimilarityEngine {
       this.logger.log(
         `${results.length} candidates above threshold (${this.SIMILARITY_THRESHOLD})`,
       );
-      this.logTopMatch(results);
 
-      return results.map(({ ruleScores: _, ...pub }) => pub);
+      if (results.length > 0) {
+        const top = results[0];
+        this.logger.debug(`Top match: "${top.event.title}" (${top.score})`);
+      }
+
+      return results;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error finding similar events: ${message}`);
       throw error;
     }
   }
-
-  // ─── Private helpers ──────────────────────────────────────────────────────
 
   private buildWindow(date: Date): { from: Date; to: Date } {
     const from = new Date(date);
@@ -104,7 +99,7 @@ export class SimilarityEngine implements ISimilarityEngine {
   private async scoreCandidate(
     candidate: EventSummary,
     submission: EventSubmission,
-  ): Promise<InternalScoredEvent | null> {
+  ): Promise<ScoredEvent | null> {
     try {
       const context: SimilarityContext = {
         submission,
@@ -112,36 +107,20 @@ export class SimilarityEngine implements ISimilarityEngine {
         submissionDate: submission.datetime.date,
       };
 
-      // Short-circuit: exact match check first
+      // Short-circuit: exact match stops all further scoring
       const exactRule = this.rules.find((r) => r.name === 'exact');
       if (exactRule?.calculate(context) === 1.0) {
         this.logger.log(`Exact match: ${candidate.id}`);
-        return {
-          event: candidate,
-          score: 1.0,
-          matches: { exact: true },
-          ruleScores: { exact: 1.0 },
-        };
+        return { event: candidate, score: 1.0, matches: { exact: true } };
       }
 
-      const { finalScore, ruleScores, matches } =
-        await this.evaluator.evaluate(context);
-      return { event: candidate, score: finalScore, matches, ruleScores };
+      return this.evaluator.score(candidate, context);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         `Failed to score candidate ${candidate.id}: ${message}`,
       );
       return null;
-    }
-  }
-
-  private logTopMatch(results: InternalScoredEvent[]): void {
-    if (!results.length) return;
-    const top = results[0];
-    this.logger.debug(`Top match: "${top.event.title}" (${top.score})`);
-    for (const [rule, score] of Object.entries(top.ruleScores)) {
-      this.logger.debug(`  ${rule}: ${score.toFixed(3)}`);
     }
   }
 }

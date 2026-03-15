@@ -3,38 +3,38 @@ import {
   SimilarityRule,
   SimilarityContext,
 } from '../interfaces/similarity-rule.interface';
+import { ScoredEvent } from '../dto/similarity.dto';
 
-/** Outcome of running a single rule against a candidate. */
-export interface RuleOutcome {
+/** Result from a single rule execution. */
+interface RuleOutcome {
   name: string;
   score: number;
   weight: number;
-  /** Whether the score exceeded the match threshold — set by the caller. */
   matched: boolean;
-  /** `true` if this rule was skipped or failed. */
-  skipped: boolean;
 }
 
-/** Aggregated result from all rules for a single candidate. */
-export interface AggregateScore {
-  finalScore: number;
-  ruleScores: Record<string, number>;
+/**
+ * Aggregated scoring result for a single candidate.
+ *
+ * `ruleScores` is diagnostic data — used for logging and for populating
+ * `matches`, then discarded before the result leaves this class. It never
+ * surfaces in the port contract or in any HTTP response.
+ */
+interface AggregateScore {
+  score: number;
   matches: Record<string, boolean>;
 }
 
 /**
- * Evaluates a set of {@link SimilarityRule} instances against a single context
- * and aggregates the results into a weighted score.
- *
- * **Strategy pattern:** rules are injected as strategies — this class
- * orchestrates their execution but knows nothing about what each rule measures.
- *
- * **Single Responsibility:** owns only rule execution and score aggregation.
- * Candidate fetching, window calculation, and result filtering remain in
- * {@link SimilarityEngine}.
+ * Evaluates all similarity rules against a single context and returns a
+ * fully assembled {@link ScoredEvent} ready to return to callers.
  *
  * All rules run concurrently via `Promise.allSettled`. A failing rule is
- * logged and excluded from the weighted average without affecting other rules.
+ * logged and excluded from the weighted average without affecting others.
+ *
+ * Diagnostic `ruleScores` are logged here — the only place that needs them —
+ * and never leave this class, eliminating the need for `InternalScoredEvent`
+ * in {@link SimilarityEngine}.
  */
 export class RuleEvaluator {
   private readonly MATCH_THRESHOLD = 0.7;
@@ -43,30 +43,33 @@ export class RuleEvaluator {
   constructor(private readonly rules: SimilarityRule[]) {}
 
   /**
-   * Runs all non-exact rules concurrently and returns the aggregated score.
+   * Runs all non-exact rules concurrently, aggregates the result, logs
+   * per-rule diagnostics, and returns a complete {@link ScoredEvent}.
    *
-   * @param context - Scoring context for the current candidate
-   * @returns Aggregated score with per-rule breakdown and match flags
+   * @param candidate - The candidate event being scored
+   * @param context   - Full scoring context
    */
-  async evaluate(context: SimilarityContext): Promise<AggregateScore> {
+  async score(
+    candidate: ScoredEvent['event'],
+    context: SimilarityContext,
+  ): Promise<ScoredEvent> {
     const eligible = this.rules.filter((r) => r.name !== 'exact');
 
-    const outcomes = await Promise.allSettled(
+    const settled = await Promise.allSettled(
       eligible.map((rule) => this.runRule(rule, context)),
     );
 
-    return this.aggregate(outcomes, context.candidate.id);
+    const { score, matches } = this.aggregate(settled, candidate.id);
+
+    return { event: candidate, score, matches };
   }
 
-  /**
-   * Runs a single rule — checks applicability first, then calculates score.
-   * Returns `null` if the rule is not applicable.
-   */
+  // ── Private ───────────────────────────────────────────────────────────────
+
   private async runRule(
     rule: SimilarityRule,
     context: SimilarityContext,
   ): Promise<RuleOutcome | null> {
-    // Applicability guard
     if (rule.isApplicable) {
       try {
         if (!rule.isApplicable(context)) {
@@ -82,7 +85,6 @@ export class RuleEvaluator {
       }
     }
 
-    // Score calculation
     const rawScore = rule.calculate(context);
     const score = Math.max(0, Math.min(1, rawScore));
 
@@ -97,14 +99,9 @@ export class RuleEvaluator {
       score,
       weight: Math.abs(rule.weight),
       matched: score > this.MATCH_THRESHOLD,
-      skipped: false,
     };
   }
 
-  /**
-   * Aggregates settled rule outcomes into a single weighted score.
-   * Rejected promises and null outcomes are logged and excluded.
-   */
   private aggregate(
     settled: PromiseSettledResult<RuleOutcome | null>[],
     candidateId: string,
@@ -122,7 +119,7 @@ export class RuleEvaluator {
       }
 
       const outcome = result.value;
-      if (!outcome) continue; // null = not applicable, skip silently
+      if (!outcome) continue;
 
       ruleScores[outcome.name] = outcome.score;
       if (outcome.matched) matches[outcome.name] = true;
@@ -130,7 +127,8 @@ export class RuleEvaluator {
       weightedSum += outcome.score * outcome.weight;
       totalWeight += outcome.weight;
 
-      this.logger.debug(`Rule "${outcome.name}": ${outcome.score.toFixed(3)}`);
+      // Diagnostic logging — ruleScores exist here and only here
+      this.logger.debug(`  ${outcome.name}: ${outcome.score.toFixed(3)}`);
     }
 
     if (failed.length > 0) {
@@ -142,8 +140,7 @@ export class RuleEvaluator {
     const finalScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
     return {
-      finalScore: Math.round(finalScore * 100) / 100,
-      ruleScores,
+      score: Math.round(finalScore * 100) / 100,
       matches,
     };
   }
