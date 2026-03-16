@@ -1,55 +1,111 @@
 # Roadmap
 
-CampusPulse is being built in phases. Each phase builds on the previous one without requiring the pipeline or domain layer to change.
+CampusPulse is being built in phases. Each phase extends the system without requiring changes to the core ingestion pipeline or the events domain model.
+
+The design goal is **stability at the core and extensibility at the edges**.
 
 ---
 
-## Phase 1 — Current
+# Phase 1 — Current
 
 **Manual curation + crowdsourced submission**
 
-- Events are submitted via `POST /api/ingestion/submit`
-- The similarity engine auto-publishes clean submissions and flags ambiguous ones
-- Curators review and correct events via the events CRUD endpoints
-- No authentication — the API is open
+* Events are submitted via `POST /api/ingestion/submit`
+* The similarity engine detects duplicates and related events before persistence
+* Clean submissions are automatically published
+* Ambiguous submissions are flagged for later inspection
+* Curators can correct events using the events CRUD endpoints
 
-The infrastructure (Docker, nginx, CI) is production-ready. The event model and ingestion pipeline are stable.
+The API is currently open, allowing anyone to submit events.
 
----
-
-## Phase 2 — Auth + moderation queue
-
-**What changes:**
-
-- Auth module added: JWT-based authentication, user roles (submitter, moderator, admin)
-- Moderation queue: flagged submissions go to a queue instead of being returned to the submitter directly
-- Moderators approve, reject, or merge events from the queue
-- Push notifications: students can subscribe to events or categories and receive FCM notifications
-
-**What does not change:**
-
-- The ingestion pipeline logic is unchanged — the similarity engine, scoring rules, and port contracts are identical
-- The events domain layer is unchanged
-- Existing API endpoints remain compatible
+Infrastructure (Docker, nginx, CI) is already production-ready, and the ingestion pipeline and event model are considered stable.
 
 ---
 
-## Phase 3 — Organiser dashboard
+# Phase 2 — Authentication + submission tracking
 
-**What changes:**
+**Goal:** ensure submissions come from real students and enable user-based analytics and trust systems.
 
-- Organisers can claim events and manage them directly, bypassing the crowdsourced submission flow
-- A new `AggregationSource` abstraction is introduced — the organiser dashboard is one implementation; crowdsourced submission is another
-- Admin panel for managing users, sources, and feed quality
+## What changes
 
-**What does not change:**
+* Authentication is introduced using JWT
+* Users must authenticate before submitting events
+* Accounts are restricted to verified school email domains
+* Submissions are associated with a user record
+* Admin authentication allows administrative event management and ingestion overrides
 
-- Zero changes to the ingestion pipeline
-- Zero changes to the similarity engine
-- The events domain layer is unchanged
+Initial roles remain minimal:
+
+* `user`
+* `admin`
+
+Every authenticated user can submit events. The system remains crowdsourced.
+
+User records enable future features such as:
+
+* reputation scoring
+* spam detection
+* submission analytics
+* trust-based ingestion rules
+
+## What does not change
+
+* The ingestion pipeline logic remains identical
+* The similarity engine and scoring rules remain unchanged
+* The events domain layer is unchanged
+* Existing API endpoints remain compatible
+
+Authentication is added at the API boundary without modifying the core ingestion system.
 
 ---
 
-## Design principle
+# Phase 3 — Organiser dashboard
 
-Each phase adds new implementations of existing ports, or new ports with new implementations. The domain layer and the ingestion pipeline are designed to never change as new capabilities are added — only extended at the edges.
+**Goal:** allow event organisers to manage their events directly.
+
+## What changes
+
+* Organisers can claim or create events through a dashboard
+* Organiser-managed events bypass the crowdsourced submission flow
+* A new `AggregationSource` abstraction is introduced to support multiple event sources
+* Admin tools are expanded for managing users, sources, and feed quality
+
+## What does not change
+
+* The ingestion pipeline remains unchanged
+* The similarity engine remains unchanged
+* The events domain layer remains unchanged
+
+Crowdsourced submission and organiser-managed events coexist as separate ingestion sources.
+
+---
+
+# Phase 4 — Discovery and notifications
+
+**Goal:** improve how students discover relevant events.
+
+Potential additions include:
+
+* event subscriptions
+* category following
+* personalised event feeds
+* trending events
+* push notifications for upcoming events
+
+These features build on the existing event data without modifying the ingestion pipeline.
+
+---
+
+# Design Principle
+
+The system follows a strict architectural rule:
+
+Core systems should **not change as new features are added**.
+
+New capabilities are implemented by:
+
+* adding new implementations of existing ports
+* introducing new ports with separate implementations
+* extending infrastructure and API layers
+
+The ingestion pipeline, similarity engine, and events domain model are designed to remain stable while the platform evolves.
