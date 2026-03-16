@@ -45,7 +45,7 @@ Everything you need to run, contribute to, or understand the codebase:
 | Concern | Technology |
 |---------|-----------|
 | Framework | NestJS 11 |
-| ORM | MikroORM 6 (PostgreSQL driver) |
+| ORM | MikroORM 7 (PostgreSQL driver) |
 | Database | PostgreSQL 14+ |
 | Validation | class-validator + class-transformer |
 | Config validation | Zod |

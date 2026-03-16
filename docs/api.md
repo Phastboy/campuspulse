@@ -18,7 +18,7 @@ All responses are wrapped in the `ApiResponse<T>` envelope:
 
 The ingestion pipeline handles all event submissions. It validates, scores for duplicates, and either auto-publishes, auto-links, or asks the submitter to resolve ambiguity.
 
-### `POST /api/ingestion/submit`
+### `POST /ingestion/submit`
 
 Submit an event. Three possible outcomes:
 
@@ -95,7 +95,7 @@ curl -X POST http://localhost:3000/api/ingestion/submit \
 
 ---
 
-### `POST /api/ingestion/confirm`
+### `POST /ingestion/confirm`
 
 Resolve a `needs_decision` submission. Pass the `originalSubmission` object from the submit response plus a `decision` field.
 
@@ -125,7 +125,7 @@ curl -X POST http://localhost:3000/api/ingestion/confirm \
 
 ## Events — read and manage published events
 
-### `GET /api/events`
+### `GET /events`
 
 Returns published events ordered by date ascending.
 
@@ -153,7 +153,7 @@ curl "http://localhost:3000/api/events?type=specific"
 
 ---
 
-### `GET /api/events/venue/:venue`
+### `GET /events/venue/:venue`
 
 Case-insensitive partial match on venue name. Useful before submitting to check what is already at a venue.
 
@@ -164,7 +164,7 @@ curl http://localhost:3000/api/events/venue/ACE
 
 ---
 
-### `GET /api/events/:id`
+### `GET /events/:id`
 
 Returns a single event by UUID.
 
@@ -176,7 +176,7 @@ Returns `404` if not found.
 
 ---
 
-### `PATCH /api/events/:id`
+### `PATCH /events/:id`
 
 Partial update. Only provided fields are changed.
 
@@ -196,7 +196,7 @@ Returns `404` if not found, `400` if the update payload is invalid.
 
 ---
 
-### `DELETE /api/events/:id`
+### `DELETE /events/:id`
 
 Hard delete. Returns `204 No Content` on success.
 
