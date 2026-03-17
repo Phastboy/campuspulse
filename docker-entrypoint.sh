@@ -8,7 +8,7 @@ set -e
 echo "[entrypoint] Running database migrations..."
 node -e "
 const { MikroORM } = require('@mikro-orm/core');
-const config = require('./dist/database/mikro-orm.config').default;
+const config = require('./dist/configs/mikro-orm.config').default;
 
 MikroORM.init(config).then(async (orm) => {
   const migrator = orm.migrator;
