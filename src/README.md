@@ -4,11 +4,22 @@ Application source code. The project follows Clean Architecture with Ports & Ada
 
 ```
 src/
-├── common/       Shared types, constants, DTOs, and the ITransactionManager port
-├── config/       Environment variable validation (Zod schema)
-├── database/     MikroORM configuration and migrations
-├── events/       Published event management — CRUD, ports, repository, domain types
-└── ingestion/    Event submission pipeline — similarity engine, scoring rules, mappers
+├── domain/          Interfaces, types, and errors — zero framework dependencies
+├── ports/           All port interfaces and injection tokens
+├── dto/             All HTTP input/output shapes
+├── services/        Application services — orchestration and business logic
+├── controllers/     HTTP boundary — maps DTOs to domain types, delegates to services
+├── infrastructure/  ORM entity and repository implementations
+├── mappers/         DTO ↔ domain object conversion
+├── rules/           Similarity scoring rules
+├── similarity/      Similarity engine, rule evaluator, and rule interface
+├── helpers/         Shared utility functions
+├── common/          Constants, datetime types, and exception filter
+├── configs/         All configuration — env validation, MikroORM, Swagger
+├── modules/         Thin NestJS wiring modules — providers and exports only
+├── app.controller.ts
+├── app.service.ts
+└── main.ts
 ```
 
 ---
@@ -16,53 +27,65 @@ src/
 ## Layer rules
 
 ```
-HTTP (controllers, DTOs, filters)
-         ↓
-Application (services, mappers)
-         ↓
-   Port interfaces
-         ↓
-Domain (types, errors)
-         ↑
-Infrastructure (repositories, ORM adapters)
+HTTP (controllers, DTOs)
+        ↓
+Application (services, mappers, similarity, rules)
+        ↓
+    Port interfaces
+        ↓
+Domain (interfaces, types, errors)
+        ↑
+Infrastructure (repositories, ORM entity)
 ```
 
 | Layer | May import from | Must never import from |
 |-------|----------------|------------------------|
-| HTTP (controllers) | Application, Domain, `@common` | Infrastructure |
-| Application (services) | Domain, Ports, `@common` | Infrastructure directly, HTTP types |
-| Domain (types, errors) | `@common` only | Application, Infrastructure, HTTP |
-| Infrastructure (repositories) | Domain, Ports | Application, HTTP |
+| HTTP (controllers) | Application, Domain, `@dto`, `@common` | Infrastructure |
+| Application (services) | Domain, Ports, `@dto`, `@common` | Infrastructure directly |
+| Domain | `@common` only | Anything else |
+| Infrastructure | Domain, Ports | Application, HTTP |
 
-Violations of these rules are not caught by the TypeScript compiler — they must be caught in review. See [`docs/contributing.md`](../docs/contributing.md) for the PR checklist.
-
----
-
-## Module structure
-
-Each feature module (`events`, `ingestion`) is self-contained. A module owns its controllers, services, DTOs, ports, and repository. Cross-module dependencies flow through exported port tokens — never through direct class imports.
-
-The only cross-module dependency at runtime is `IngestionModule` importing `EventsModule` to receive `EVENT_CREATOR`, `CANDIDATE_REPOSITORY`, and `TRANSACTION_MANAGER` tokens.
+Violations are not caught by the TypeScript compiler — they must be caught in review. See [`docs/contributing.md`](../docs/contributing.md).
 
 ---
 
 ## Path aliases
 
-TypeScript path aliases are configured in `tsconfig.json`:
+Every top-level directory has a corresponding alias. Use these instead of relative `../` paths when crossing directories:
 
 | Alias | Resolves to |
 |-------|------------|
+| `@domain` | `src/domain` |
+| `@ports` | `src/ports` |
+| `@dto` | `src/dto` |
+| `@services` | `src/services` |
+| `@controllers` | `src/controllers` |
+| `@infrastructure` | `src/infrastructure` |
+| `@mappers` | `src/mappers` |
+| `@rules` | `src/rules` |
+| `@similarity` | `src/similarity` |
+| `@helpers` | `src/helpers` |
 | `@common` | `src/common` |
-| `@events` | `src/events` |
+| `@configs` | `src/configs` |
+| `@modules` | `src/modules` |
 
-Use these instead of relative `../` paths when crossing module boundaries.
+---
+
+## Module wiring
+
+NestJS requires `@Module()` classes for provider registration and encapsulation. With the flat source structure, modules live in `src/modules/` and act as pure wiring — no business logic, no direct method calls. Each module's only job is to declare which providers exist, which tokens they satisfy, and which tokens it exports for other modules to consume.
+
+Adding a feature in Phase 2 means adding classes to the flat directories and one new file in `modules/` — no reshuffling of existing code.
 
 ---
 
 ## Per-directory documentation
 
-Each subdirectory has its own README covering what it contains and why it is structured the way it is:
-
+- [`domain/README.md`](domain/README.md)
+- [`ports/README.md`](ports/README.md)
+- [`infrastructure/README.md`](infrastructure/README.md)
+- [`similarity/README.md`](similarity/README.md)
+- [`rules/README.md`](rules/README.md)
+- [`modules/README.md`](modules/README.md)
 - [`common/README.md`](common/README.md)
-- [`events/README.md`](events/README.md)
-- [`ingestion/README.md`](ingestion/README.md)
+- [`configs/README.md`](configs/README.md)
