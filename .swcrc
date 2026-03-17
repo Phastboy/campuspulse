@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/swcrc",
+  "sourceMaps": true,
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true,
+      "dynamicImport": true
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
+    },
+    "target": "es2021",
+    "keepClassNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@common": ["src/common"],
+      "@common/*": ["src/common/*"],
+      "@events": ["src/events"],
+      "@events/*": ["src/events/*"]
+    }
+  },
+  "module": {
+    "type": "commonjs"
+  }
+}

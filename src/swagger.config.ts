@@ -11,12 +11,15 @@ import { AppConfig } from './config/validation';
  * When enabled, the docs and JSON endpoints are protected by HTTP Basic Auth
  * to prevent accidental exposure of the API surface in production.
  *
- * All configuration values are read from the validated {@link AppConfig} so
- * misconfigured environments fail at startup, not at request time.
+ * Uses `SwaggerModule.loadPluginMetadata` to load the metadata file generated
+ * by the `@nestjs/swagger/plugin` during the SWC build — this step is required
+ * because SWC cannot apply TypeScript AST transforms at compile time the way
+ * tsc does. The metadata file is auto-generated at `src/metadata.ts` and must
+ * never be committed (it is in .gitignore).
  *
  * @example
  * // In main.ts after the app is created:
- * SwaggerSetup.register(app, globalPrefix);
+ * await SwaggerSetup.register(app);
  */
 export class SwaggerSetup {
   /**
@@ -25,11 +28,24 @@ export class SwaggerSetup {
    *
    * @param app - The running NestJS application instance
    */
-  static register(app: INestApplication): void {
+  static async register(app: INestApplication): Promise<void> {
     const config = app.get(ConfigService<AppConfig>);
 
     const enabled = config.get<boolean>('SWAGGER_ENABLED');
     if (!enabled) return;
+
+    // Load SWC-generated plugin metadata so Swagger picks up all decorators
+    // and TSDoc comments introspected during build. Silently skipped if the
+    // metadata file does not exist (e.g. in test environments).
+    try {
+      const metadata = await import('./metadata');
+      if (metadata?.default) {
+        await SwaggerModule.loadPluginMetadata(metadata.default);
+      }
+    } catch {
+      // metadata.ts not present — Swagger will still work, just without
+      // auto-inferred types from TSDoc comments.
+    }
 
     const username = config.get('SWAGGER_USER') as string;
     const password = config.get('SWAGGER_PASS') as string;
