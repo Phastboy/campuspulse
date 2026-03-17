@@ -15,18 +15,32 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@common": [
-        "src/common"
-      ],
-      "@common/*": [
-        "src/common/*"
-      ],
-      "@events": [
-        "src/events"
-      ],
-      "@events/*": [
-        "src/events/*"
-      ]
+      "@domain":           ["src/domain"],
+      "@domain/*":         ["src/domain/*"],
+      "@ports":            ["src/ports"],
+      "@ports/*":          ["src/ports/*"],
+      "@dto":              ["src/dto"],
+      "@dto/*":            ["src/dto/*"],
+      "@services":         ["src/services"],
+      "@services/*":       ["src/services/*"],
+      "@controllers":      ["src/controllers"],
+      "@controllers/*":    ["src/controllers/*"],
+      "@infrastructure":   ["src/infrastructure"],
+      "@infrastructure/*": ["src/infrastructure/*"],
+      "@mappers":          ["src/mappers"],
+      "@mappers/*":        ["src/mappers/*"],
+      "@rules":            ["src/rules"],
+      "@rules/*":          ["src/rules/*"],
+      "@similarity":       ["src/similarity"],
+      "@similarity/*":     ["src/similarity/*"],
+      "@helpers":          ["src/helpers"],
+      "@helpers/*":        ["src/helpers/*"],
+      "@common":           ["src/common"],
+      "@common/*":         ["src/common/*"],
+      "@configs":          ["src/configs"],
+      "@configs/*":        ["src/configs/*"],
+      "@modules":          ["src/modules"],
+      "@modules/*":        ["src/modules/*"]
     },
     "incremental": true,
     "skipLibCheck": true,
