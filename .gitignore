@@ -60,6 +60,7 @@ mikro*
 **/*/.*
 # allow MikroORM repositories
 !**/mikro-orm-*.ts
+!**/*.config.ts
 
 # pnpm
 .pnpm-store/
