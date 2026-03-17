@@ -20,13 +20,26 @@ export class EventDateTimeMapper {
 
   toEventDateTime(dto: SubmitEventDto): EventDateTime {
     if (dto.type === 'specific') {
+      if (!dto.startTime) {
+        throw new Error(
+          'Invalid event: startTime is required for specific events',
+        );
+      }
+
+      const startTime = new Date(dto.startTime);
+
+      if (isNaN(startTime.getTime())) {
+        throw new Error('Invalid event: startTime is not a valid date');
+      }
+
       return {
         type: 'specific',
         date: new Date(dto.date),
-        startTime: new Date(dto.startTime),
+        startTime,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
       };
     }
+
     return {
       type: 'all-day',
       date: new Date(dto.date),
