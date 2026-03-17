@@ -1,8 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { SimilarityRule, SimilarityContext } from './similarity-rule.interface';
 import { RuleEvaluator } from './rule-evaluator';
-import { EventSummary, EventSubmission } from '@domain/types';
-import { ScoredEvent } from '@dto/similarity.dto';
+import { EventSummary, EventSubmission, SimilarityMatch } from '@domain/types';
 import {
   type ICandidateRepository,
   CANDIDATE_REPOSITORY,
@@ -12,8 +11,12 @@ import { type ISimilarityEngine } from '@ports/similarity-engine.port';
 /**
  * Orchestrates duplicate detection for a submission.
  *
+ * Returns {@link SimilarityMatch} domain types throughout — no HTTP DTOs or
+ * Swagger decorators at this layer. The controller maps matches to the
+ * appropriate HTTP response shape at the boundary.
+ *
  * Responsibilities:
- * 1. Build the candidate search window (±7 days)
+ * 1. Build the ±7-day candidate search window
  * 2. Short-circuit on exact matches
  * 3. Score remaining candidates via {@link RuleEvaluator} (parallel)
  * 4. Filter below threshold and sort by score descending
@@ -36,7 +39,7 @@ export class SimilarityEngine implements ISimilarityEngine {
     this.logger.log(`SimilarityEngine ready with ${rules.length} rules`);
   }
 
-  async findSimilar(submission: EventSubmission): Promise<ScoredEvent[]> {
+  async findSimilar(submission: EventSubmission): Promise<SimilarityMatch[]> {
     this.logger.log(`Finding similar events for: "${submission.title}"`);
 
     const { from, to } = this.buildWindow(submission.datetime.date);
@@ -53,7 +56,7 @@ export class SimilarityEngine implements ISimilarityEngine {
 
     return scored
       .filter(
-        (r): r is ScoredEvent =>
+        (r): r is SimilarityMatch =>
           r !== null && r.score > this.SIMILARITY_THRESHOLD,
       )
       .sort((a, b) => b.score - a.score);
@@ -70,7 +73,7 @@ export class SimilarityEngine implements ISimilarityEngine {
   private async scoreCandidate(
     candidate: EventSummary,
     submission: EventSubmission,
-  ): Promise<ScoredEvent | null> {
+  ): Promise<SimilarityMatch | null> {
     try {
       const context: SimilarityContext = {
         submission,

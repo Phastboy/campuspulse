@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { SimilarityRule, SimilarityContext } from './similarity-rule.interface';
-import { ScoredEvent } from '@dto/similarity.dto';
+import { SimilarityMatch } from '@domain/types';
 import { EventSummary } from '@domain/types';
 
 interface RuleOutcome {
@@ -17,11 +17,11 @@ interface AggregateScore {
 
 /**
  * Evaluates all similarity rules against a single context and returns a
- * fully assembled {@link ScoredEvent}.
+ * {@link SimilarityMatch} — a plain domain type, free of HTTP decorators.
  *
  * All non-exact rules run concurrently via `Promise.allSettled`. A failing
  * rule is logged and excluded from the weighted average without affecting
- * others. Diagnostic `ruleScores` are logged here and never surface above.
+ * others. Per-rule diagnostic scores are logged here and never surface above.
  */
 export class RuleEvaluator {
   private readonly MATCH_THRESHOLD = 0.7;
@@ -32,7 +32,7 @@ export class RuleEvaluator {
   async score(
     candidate: EventSummary,
     context: SimilarityContext,
-  ): Promise<ScoredEvent> {
+  ): Promise<SimilarityMatch> {
     const eligible = this.rules.filter((r) => r.name !== 'exact');
     const settled = await Promise.allSettled(
       eligible.map((rule) => this.runRule(rule, context)),

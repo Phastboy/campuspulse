@@ -2,11 +2,13 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { SubmitEventDto } from '@dto/submit-event.dto';
 import { ConfirmSubmissionDto } from '@dto/confirm-submission.dto';
 import {
-  IngestionResult,
-  CreatedResult,
-  LinkedResult,
-  NeedsDecisionResult,
-} from '@dto/ingestion-result.dto';
+  IngestionOutcome,
+  CreatedOutcome,
+  LinkedOutcome,
+  NeedsDecisionOutcome,
+  SimilarityMatch,
+  EventSubmission,
+} from '@domain/types';
 import {
   type ISimilarityEngine,
   SIMILARITY_ENGINE,
@@ -21,8 +23,9 @@ import { EventDateTimeMapper } from '@mappers/event-datetime.mapper';
 /**
  * Orchestrates the two-step event ingestion pipeline.
  *
- * Zero ORM imports. Zero infrastructure imports. All persistence flows through
- * injected port interfaces.
+ * Returns {@link IngestionOutcome} — a domain-level discriminated union with
+ * no Swagger decorators. The controller maps outcomes to HTTP DTOs at the
+ * boundary. Zero ORM imports. Zero infrastructure imports.
  */
 @Injectable()
 export class IngestionService {
@@ -37,33 +40,24 @@ export class IngestionService {
     private readonly mapper: EventDateTimeMapper,
   ) {}
 
-  async submit(data: SubmitEventDto): Promise<IngestionResult> {
+  async submit(data: SubmitEventDto): Promise<IngestionOutcome> {
     const submission = this.mapper.toEventSubmission(data);
     const similar = await this.similarityEngine.findSimilar(submission);
     const exactMatch = similar.find((s) => s.score === 1.0);
 
     if (exactMatch) {
-      return IngestionResultFactory.linked(
-        exactMatch.event.id,
-        'Event already exists',
-      );
+      return linked(exactMatch.event.id, 'Event already exists');
     }
     if (similar.length === 0) {
       const event = await this.eventCreator.create(submission);
-      return IngestionResultFactory.created(
-        event.id,
-        'Event published successfully',
-      );
+      return created(event.id, 'Event published successfully');
     }
-    return IngestionResultFactory.needsDecision(similar, data);
+    return needsDecision(similar, submission);
   }
 
-  async confirm(data: ConfirmSubmissionDto): Promise<IngestionResult> {
+  async confirm(data: ConfirmSubmissionDto): Promise<IngestionOutcome> {
     if (data.decision === 'duplicate' && data.existingEventId) {
-      return IngestionResultFactory.linked(
-        data.existingEventId,
-        'Linked to existing event',
-      );
+      return linked(data.existingEventId, 'Linked to existing event');
     }
 
     const submission = this.mapper.toEventSubmission(data);
@@ -74,46 +68,34 @@ export class IngestionService {
       this.logger.warn(
         `confirm("new") overridden — exact match: ${exactMatch.event.id}`,
       );
-      return IngestionResultFactory.linked(
-        exactMatch.event.id,
-        'Event already exists',
-      );
+      return linked(exactMatch.event.id, 'Event already exists');
     }
 
     return this.transactionManager.run(async () => {
       const event = await this.eventCreator.create(submission);
-      return IngestionResultFactory.created(
-        event.id,
-        'Event published successfully',
-      );
+      return created(event.id, 'Event published successfully');
     });
   }
 }
 
-class IngestionResultFactory {
-  static created(eventId: string, message: string): CreatedResult {
-    return Object.assign(new CreatedResult(), {
-      action: 'created' as const,
-      eventId,
-      message,
-    });
-  }
-  static linked(eventId: string, message: string): LinkedResult {
-    return Object.assign(new LinkedResult(), {
-      action: 'linked' as const,
-      eventId,
-      message,
-    });
-  }
-  static needsDecision(
-    similar: NeedsDecisionResult['similar'],
-    originalSubmission: SubmitEventDto,
-  ): NeedsDecisionResult {
-    return Object.assign(new NeedsDecisionResult(), {
-      action: 'needs_decision' as const,
-      message: 'Similar events found. Is this the same event?',
-      similar,
-      originalSubmission,
-    });
-  }
+// ── Outcome factories ────────────────────────────────────────────────────────
+
+function created(eventId: string, message: string): CreatedOutcome {
+  return { action: 'created', eventId, message };
+}
+
+function linked(eventId: string, message: string): LinkedOutcome {
+  return { action: 'linked', eventId, message };
+}
+
+function needsDecision(
+  similar: SimilarityMatch[],
+  originalSubmission: EventSubmission,
+): NeedsDecisionOutcome {
+  return {
+    action: 'needs_decision',
+    message: 'Similar events found. Is this the same event?',
+    similar,
+    originalSubmission,
+  };
 }

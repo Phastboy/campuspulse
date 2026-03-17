@@ -44,7 +44,9 @@ Read [`docs/architecture.md`](architecture.md) before writing code. The rules th
 - `domain/` must not import from any framework, ORM, or HTTP library — only `@common`
 - Services must not import from `@infrastructure` directly — only through port interfaces
 - Controllers must not contain business logic — delegate entirely to services
-- Port interfaces use only domain types in their signatures — no DTOs, no ORM entities
+- Port interfaces use only domain types in their signatures — no DTOs, no ORM entities, no Swagger decorators
+- Services return domain types — never HTTP DTOs decorated with `@ApiProperty`
+- The mapping from domain types to HTTP DTOs happens exclusively in controllers
 - Nothing in `@common` may import from any other `src/` directory
 - MikroORM imports are permitted only in `src/infrastructure/`
 - Every ORM entity must `implement` its corresponding domain interface from `@domain/interfaces`
