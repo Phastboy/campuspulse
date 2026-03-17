@@ -38,69 +38,58 @@ graph LR
   %% Class-level dependency injection
   %% Solid arrow → direct dependency    Dashed arrow -.-> via port token
 
-  subgraph root ["root"]
-    AppController["AppController"]
-    AppService["AppService"]
+  subgraph controllers ["controllers"]
+    EventsController["EventsController"]
+    IngestionController["IngestionController"]
   end
 
-  subgraph events ["events"]
-    EventsController["EventsController"]
-    EventsService["EventsService"]
+  subgraph infrastructure ["infrastructure"]
     MikroOrmEventRepository["MikroOrmEventRepository"]
     MikroOrmTransactionManager["MikroOrmTransactionManager"]
   end
 
-  subgraph ingestion ["ingestion"]
-    IngestionController["IngestionController"]
-    IngestionService["IngestionService"]
+  subgraph rules ["rules"]
     DateProximityRule["DateProximityRule"]
     ExactMatchRule["ExactMatchRule"]
     TitleSimilarityRule["TitleSimilarityRule"]
     VenueSimilarityRule["VenueSimilarityRule"]
+  end
+
+  subgraph services ["services"]
+    EventsService["EventsService"]
+    IngestionService["IngestionService"]
+  end
+
+  subgraph similarity ["similarity"]
     SimilarityEngine["SimilarityEngine"]
   end
 
-  AppController --> AppService
   EventsController --> EventsService
-  EventsService --> EventDateTimeAssembler
   IngestionController --> IngestionService
+  EventsService --> EventDateTimeAssembler
   IngestionService --> EventDateTimeMapper
   SimilarityEngine --> RuleEvaluator
 
   subgraph ports_sg ["port interfaces"]
-    ITransactionManager(["«if» ITransactionManager"])
-    IEventCreator(["«if» IEventCreator"])
-    IEventMutator(["«if» IEventMutator"])
-    IEventReader(["«if» IEventReader"])
-    IEventWriter(["«if» IEventWriter"])
-    ICandidateRepository(["«if» ICandidateRepository"])
-    ISimilarityEngine(["«if» ISimilarityEngine"])
+    IEvent(["«if» IEvent"])
   end
 
   classDef ctrl  fill:#0f3460,stroke:#e94560,color:#fff
   classDef svc   fill:#16213e,stroke:#533483,color:#e0e0e0
   classDef infra fill:#1a1a2e,stroke:#2196f3,color:#b0bec5
   classDef port  fill:none,stroke:#78909c,color:#90a4ae,stroke-dasharray:5 5
-  class AppController ctrl
-  class AppService svc
   class EventsController ctrl
-  class EventsService svc
+  class IngestionController ctrl
   class MikroOrmEventRepository infra
   class MikroOrmTransactionManager infra
-  class IngestionController ctrl
-  class IngestionService svc
   class DateProximityRule svc
   class ExactMatchRule svc
   class TitleSimilarityRule svc
   class VenueSimilarityRule svc
+  class EventsService svc
+  class IngestionService svc
   class SimilarityEngine svc
-  class ITransactionManager port
-  class IEventCreator port
-  class IEventMutator port
-  class IEventReader port
-  class IEventWriter port
-  class ICandidateRepository port
-  class ISimilarityEngine port
+  class IEvent port
 ```
 
 ---
@@ -115,53 +104,19 @@ graph TB
   %% Layers — arrows show the only allowed dependency direction
 
   subgraph http ["HTTP Layer · Controllers · DTOs · Filters"]
-    AppController["AppController"]
-    ApiResponse["ApiResponse"]
-    EventFieldsDto["EventFieldsDto"]
     AllExceptionsFilter["AllExceptionsFilter"]
-    CreateEventDto["CreateEventDto"]
-    EventQueryDto["EventQueryDto"]
-    UpdateEventDto["UpdateEventDto"]
     EventsController["EventsController"]
-    ConfirmSubmissionDto["ConfirmSubmissionDto"]
-    CreatedResult["CreatedResult"]
-    LinkedResult["LinkedResult"]
-    NeedsDecisionResult["NeedsDecisionResult"]
-    ScoredEvent["ScoredEvent"]
-    SubmitEventDto["SubmitEventDto"]
     IngestionController["IngestionController"]
   end
 
   subgraph application ["Application Layer · Services · Mappers · Rules"]
-    AppService["AppService"]
     EventsService["EventsService"]
-    EventDateTimeAssembler["EventDateTimeAssembler"]
-    EventDateTimeMapper["EventDateTimeMapper"]
     IngestionService["IngestionService"]
-    TextSimilarityRule["TextSimilarityRule"]
-    DateProximityRule["DateProximityRule"]
-    ExactMatchRule["ExactMatchRule"]
-    TitleSimilarityRule["TitleSimilarityRule"]
-    VenueSimilarityRule["VenueSimilarityRule"]
     SimilarityEngine["SimilarityEngine"]
   end
 
   subgraph port ["Port Layer · Interfaces · Tokens"]
-    ITransactionManager(["«if» ITransactionManager"])
-    IEventCreator(["«if» IEventCreator"])
-    IEventMutator(["«if» IEventMutator"])
-    IEventReader(["«if» IEventReader"])
-    IEventWriter(["«if» IEventWriter"])
-    ICandidateRepository(["«if» ICandidateRepository"])
-    ISimilarityEngine(["«if» ISimilarityEngine"])
-  end
-
-  subgraph domain ["Domain Layer · Types · Errors"]
-    InvalidDatetimeError["InvalidDatetimeError"]
-    EventQuery(["«if» EventQuery"])
-    EventSubmission(["«if» EventSubmission"])
-    EventSummary(["«if» EventSummary"])
-    PaginatedEvents(["«if» PaginatedEvents"])
+    IEvent(["«if» IEvent"])
   end
 
   subgraph infrastructure ["Infrastructure Layer · Repositories · ORM"]
@@ -179,44 +134,13 @@ graph TB
   classDef port   fill:#4a148c,stroke:#6a1b9a,color:#f3e5f5
   classDef domain fill:#e65100,stroke:#ef6c00,color:#fff3e0
   classDef infra  fill:#37474f,stroke:#455a64,color:#eceff1
-  class AppController http
-  class ApiResponse http
-  class EventFieldsDto http
   class AllExceptionsFilter http
-  class CreateEventDto http
-  class EventQueryDto http
-  class UpdateEventDto http
   class EventsController http
-  class ConfirmSubmissionDto http
-  class CreatedResult http
-  class LinkedResult http
-  class NeedsDecisionResult http
-  class ScoredEvent http
-  class SubmitEventDto http
   class IngestionController http
-  class AppService app
   class EventsService app
-  class EventDateTimeAssembler app
-  class EventDateTimeMapper app
   class IngestionService app
-  class TextSimilarityRule app
-  class DateProximityRule app
-  class ExactMatchRule app
-  class TitleSimilarityRule app
-  class VenueSimilarityRule app
   class SimilarityEngine app
-  class ITransactionManager port
-  class IEventCreator port
-  class IEventMutator port
-  class IEventReader port
-  class IEventWriter port
-  class ICandidateRepository port
-  class ISimilarityEngine port
-  class InvalidDatetimeError domain
-  class EventQuery domain
-  class EventSubmission domain
-  class EventSummary domain
-  class PaginatedEvents domain
+  class IEvent port
   class MikroOrmEventRepository infra
   class MikroOrmTransactionManager infra
 ```
@@ -227,12 +151,7 @@ graph TB
 
 | Port Interface | Injection Token | Implementation | Module |
 |---------------|----------------|---------------|--------|
-| `IEventReader` | `EVENT_READER` | `MikroOrmEventRepository` | `events` |
-| `IEventCreator` | `EVENT_CREATOR` | `MikroOrmEventRepository` | `events` |
-| `IEventMutator` | `EVENT_MUTATOR` | `MikroOrmEventRepository` | `events` |
-| `ICandidateRepository` | `CANDIDATE_REPOSITORY` | `MikroOrmEventRepository` | `events` |
-| `ITransactionManager` | `TRANSACTION_MANAGER` | `MikroOrmTransactionManager` | `events` |
-| `ISimilarityEngine` | `SIMILARITY_ENGINE` | `SimilarityEngine` | `ingestion` |
+| `IEvent` | `—` | `Event` | `infrastructure` |
 
 ---
 
@@ -248,4 +167,4 @@ graph TB
 
 ---
 
-_Generated: 2026-03-15T03:49:50.110Z_
+_Generated: 2026-03-17T13:10:58.434Z_
