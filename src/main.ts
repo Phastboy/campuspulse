@@ -46,7 +46,7 @@ async function bootstrap(): Promise<void> {
   );
 
   app.useGlobalFilters(new AllExceptionsFilter());
-  SwaggerSetup.register(app);
+  await SwaggerSetup.register(app);
   app.enableCors();
 
   const port = configService.get('PORT') as number;
