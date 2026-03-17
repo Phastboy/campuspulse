@@ -6,7 +6,7 @@ import { ValidateIf, IsDateString, IsDefined } from 'class-validator';
  * Adds ingestion-specific validation rules on top of {@link EventFieldsDto}.
  */
 export class SubmitEventDto extends EventFieldsDto {
-  @ValidateIf((o) => o.type === 'specific')
+  @ValidateIf((o: SubmitEventDto) => o.type === 'specific')
   @IsDefined()
   @IsDateString()
   declare startTime: string;
