@@ -1,5 +1,5 @@
-import { EventDateTime } from '@common/datetime';
-import { EventSubmission } from '@domain/types';
+import { EventDateTime } from '@domain/value-objects';
+import { EventSubmission } from '@application/types';
 import { SubmitEventDto } from '@dto/submit-event.dto';
 
 /**

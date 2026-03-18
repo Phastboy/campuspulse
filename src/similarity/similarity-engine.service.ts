@@ -1,7 +1,11 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { SimilarityRule, SimilarityContext } from './similarity-rule.interface';
 import { RuleEvaluator } from './rule-evaluator';
-import { EventSummary, EventSubmission, SimilarityMatch } from '@domain/types';
+import {
+  EventSummary,
+  EventSubmission,
+  SimilarityMatch,
+} from '@application/types';
 import {
   type ICandidateRepository,
   CANDIDATE_REPOSITORY,

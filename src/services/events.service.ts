@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { IEvent } from '@domain/interfaces';
-import { EventQuery, PaginatedEvents } from '@domain/types';
+import { EventQuery, PaginatedEvents } from '@application/types';
 import { InvalidDatetimeError } from '@domain/errors';
 import { UpdateEventDto } from '@dto/update-event.dto';
 import { type IEventReader, EVENT_READER } from '@ports/event-reader.port';

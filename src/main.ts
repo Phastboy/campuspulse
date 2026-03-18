@@ -13,12 +13,6 @@ import { AllExceptionsFilter } from '@common/filters/all-exceptions.filter';
 import { SwaggerSetup } from '@configs/swagger.config';
 import { AppConfig } from '@configs/validation';
 
-/**
- * Application entry point.
- *
- * Bootstraps the NestJS application, configures global middleware,
- * registers Swagger (if enabled via env), and starts listening.
- */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
     logger: new ConsoleLogger({ json: true, colors: true }),

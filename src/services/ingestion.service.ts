@@ -8,7 +8,7 @@ import {
   NeedsDecisionOutcome,
   SimilarityMatch,
   EventSubmission,
-} from '@domain/types';
+} from '@application/types';
 import {
   type ISimilarityEngine,
   SIMILARITY_ENGINE,

@@ -5,12 +5,6 @@ import { IngestionModule } from './ingestion.module';
 import mikroOrmConfig from '@configs/mikro-orm.config';
 import { validateConfig } from '@configs/validation';
 
-/**
- * Root application module.
- *
- * Wires global infrastructure (config, ORM) and imports feature modules.
- * Feature modules handle their own provider registration.
- */
 @Module({
   imports: [
     ConfigModule.forRoot({

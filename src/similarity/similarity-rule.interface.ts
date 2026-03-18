@@ -1,4 +1,4 @@
-import { EventSubmission, EventSummary } from '@domain/types';
+import { EventSubmission, EventSummary } from '@application/types';
 
 /**
  * All data available to a similarity rule during scoring.

@@ -23,7 +23,7 @@ import { EventsService } from '@services/events.service';
 import { EventQueryDto } from '@dto/event-query.dto';
 import { UpdateEventDto } from '@dto/update-event.dto';
 import { ApiResponse as AppApiResponse } from '@dto/api-response.dto';
-import { DATETIME_TYPES } from '@common/constants';
+import { DATETIME_TYPES } from '@domain/value-objects';
 
 /**
  * HTTP boundary for published event management.

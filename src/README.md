@@ -1,22 +1,23 @@
 # src/
 
-Application source code. The project follows Clean Architecture with Ports & Adapters — every dependency must flow inward, never outward.
+Application source code. The architecture follows Hexagonal (Ports & Adapters) principles layered over Clean Architecture.
 
 ```
 src/
-├── domain/          Interfaces, types, and errors — zero framework dependencies
-├── ports/           All port interfaces and injection tokens
-├── dto/             All HTTP input/output shapes
-├── services/        Application services — orchestration and business logic
-├── controllers/     HTTP boundary — maps DTOs to domain types, delegates to services
-├── infrastructure/  ORM entity and repository implementations
-├── mappers/         DTO ↔ domain object conversion
-├── rules/           Similarity scoring rules
-├── similarity/      Similarity engine, rule evaluator, and rule interface
-├── helpers/         Shared utility functions
-├── common/          Constants, datetime types, and exception filter
-├── configs/         All configuration — env validation, MikroORM, Swagger
-├── modules/         Thin NestJS wiring modules — providers and exports only
+├── domain/          Pure domain — interfaces, value objects, errors. Zero npm dependencies.
+├── application/     Application layer coordination types. Imports only from domain.
+├── ports/           Port interfaces and injection tokens. Imports from domain and application.
+├── infrastructure/  ORM entities and adapters. The only layer that imports MikroORM.
+├── services/        Application services. Orchestrate use cases via ports.
+├── controllers/     HTTP boundary. Maps DTOs ↔ application types. No business logic.
+├── similarity/      Similarity engine, rule evaluator, and rule interface.
+├── rules/           Concrete similarity scoring rule implementations.
+├── mappers/         Conversion between DTOs and application/domain types.
+├── helpers/         Shared utility functions.
+├── dto/             HTTP input/output shapes with validation decorators.
+├── configs/         All configuration — env validation, MikroORM, Swagger.
+├── modules/         Thin NestJS wiring modules. No logic — providers and exports only.
+├── common/          Global exception filter. Nothing else.
 ├── app.controller.ts
 ├── app.service.ts
 └── main.ts
@@ -24,68 +25,62 @@ src/
 
 ---
 
-## Layer rules
+## Dependency rules
 
 ```
-HTTP (controllers, DTOs)
-        ↓
-Application (services, mappers, similarity, rules)
-        ↓
-    Port interfaces
-        ↓
-Domain (interfaces, types, errors)
-        ↑
-Infrastructure (repositories, ORM entity)
+domain        ← no imports from src/ at all
+application   ← domain only
+ports         ← domain, application
+services      ← ports, application, domain, mappers, dto (input shapes only)
+similarity    ← application, ports
+rules         ← similarity (for interface), helpers
+mappers       ← domain, application, dto
+controllers   ← services, dto, domain, application
+infrastructure ← domain, application, ports (MikroORM imports permitted here only)
+configs       ← external libs only (zod, nestjs/config, mikro-orm, swagger)
+modules       ← everything (wiring only)
+common        ← nothing from src/
 ```
 
-| Layer | May import from | Must never import from |
-|-------|----------------|------------------------|
-| HTTP (controllers) | Application, Domain, `@dto`, `@common` | Infrastructure |
-| Application (services) | Domain, Ports, `@dto`, `@common` | Infrastructure directly |
-| Domain | `@common` only | Anything else |
-| Infrastructure | Domain, Ports | Application, HTTP |
+The critical invariant: **`domain/` and `ports/` compile to zero with no npm packages installed** — they contain only TypeScript interfaces and plain types.
 
-Violations are not caught by the TypeScript compiler — they must be caught in review. See [`docs/contributing.md`](../docs/contributing.md).
+---
+
+## Adapters
+
+Infrastructure adapters live in `infrastructure/adapters/`. Each adapter implements exactly one port interface. No class implements two ports. This is a strict rule — if you find yourself writing `implements IFoo, IBar`, split it into two adapters.
 
 ---
 
 ## Path aliases
 
-Every top-level directory has a corresponding alias. Use these instead of relative `../` paths when crossing directories:
-
 | Alias | Resolves to |
 |-------|------------|
 | `@domain` | `src/domain` |
+| `@application` | `src/application` |
 | `@ports` | `src/ports` |
-| `@dto` | `src/dto` |
 | `@services` | `src/services` |
 | `@controllers` | `src/controllers` |
 | `@infrastructure` | `src/infrastructure` |
-| `@mappers` | `src/mappers` |
-| `@rules` | `src/rules` |
 | `@similarity` | `src/similarity` |
+| `@rules` | `src/rules` |
+| `@mappers` | `src/mappers` |
 | `@helpers` | `src/helpers` |
-| `@common` | `src/common` |
+| `@dto` | `src/dto` |
 | `@configs` | `src/configs` |
 | `@modules` | `src/modules` |
-
----
-
-## Module wiring
-
-NestJS requires `@Module()` classes for provider registration and encapsulation. With the flat source structure, modules live in `src/modules/` and act as pure wiring — no business logic, no direct method calls. Each module's only job is to declare which providers exist, which tokens they satisfy, and which tokens it exports for other modules to consume.
-
-Adding a feature in Phase 2 means adding classes to the flat directories and one new file in `modules/` — no reshuffling of existing code.
+| `@common` | `src/common` |
 
 ---
 
 ## Per-directory documentation
 
 - [`domain/README.md`](domain/README.md)
+- [`application/README.md`](application/README.md)
 - [`ports/README.md`](ports/README.md)
 - [`infrastructure/README.md`](infrastructure/README.md)
 - [`similarity/README.md`](similarity/README.md)
 - [`rules/README.md`](rules/README.md)
 - [`modules/README.md`](modules/README.md)
-- [`common/README.md`](common/README.md)
 - [`configs/README.md`](configs/README.md)
+- [`common/README.md`](common/README.md)
