@@ -22,7 +22,7 @@ ports/
 |------|-------|---------|--------|
 | `IEventReader` | `EVENT_READER` | `MikroOrmEventReaderAdapter` | `EventsModule` |
 | `IEventCreator` | `EVENT_CREATOR` | `MikroOrmEventCreatorAdapter` | `EventsModule` |
-| `IEventMutator` | `EVENT_MUTATOR` | `MikroOrmEventMutatorAdapter` | `EventsModule` |
+| `IEventRepository` | `EVENT_REPOSITORY` | `MikroOrmEventRepositoryAdapter` | `EventsModule` |
 | `ICandidateRepository` | `CANDIDATE_REPOSITORY` | `MikroOrmCandidateRepositoryAdapter` | `EventsModule` |
 | `ITransactionManager` | `TRANSACTION_MANAGER` | `MikroOrmTransactionManagerAdapter` | `EventsModule` |
 | `ISimilarityEngine` | `SIMILARITY_ENGINE` | `SimilarityEngine` | `IngestionModule` |
