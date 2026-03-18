@@ -1,6 +1,6 @@
 import { IsOptional, IsInt, Min, IsDateString, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
-import { DATETIME_TYPES, type DatetimeType } from '@common/constants';
+import { DATETIME_TYPES, type DatetimeType } from '@domain/value-objects';
 
 export class EventQueryDto {
   @IsOptional()

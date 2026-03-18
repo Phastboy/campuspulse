@@ -6,7 +6,7 @@ import {
   IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DATETIME_TYPES, type DatetimeType } from '@common/constants';
+import { DATETIME_TYPES, type DatetimeType } from '@domain/value-objects';
 
 /**
  * Shared base class for event field definitions.

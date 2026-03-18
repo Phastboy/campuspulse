@@ -4,7 +4,7 @@ import { SubmitEventDto } from './submit-event.dto';
 import {
   SUBMISSION_DECISIONS,
   type SubmissionDecision,
-} from '@common/constants';
+} from '@domain/value-objects';
 
 export class ConfirmSubmissionDto extends SubmitEventDto {
   @ApiProperty({ enum: SUBMISSION_DECISIONS, example: 'duplicate' })
