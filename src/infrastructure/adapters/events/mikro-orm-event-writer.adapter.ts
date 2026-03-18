@@ -13,8 +13,8 @@ export class MikroOrmEventWriterAdapter implements IEventWriter {
     private readonly em: EntityManager,
   ) {}
 
-  async create(submission: EventSubmission): Promise<string> {
-    const event = this.repo.create({ ...submission, createdAt: new Date() });
+  async create(submission: EventSubmission, createdBy: string | null): Promise<string> {
+    const event = this.repo.create({ ...submission, createdBy, createdAt: new Date() });
     await this.em.persist(event).flush();
     return event.id;
   }
