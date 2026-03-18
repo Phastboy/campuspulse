@@ -7,4 +7,4 @@ import { IEvent } from '@domain/interfaces';
  * Derived from {@link IEvent} minus the server-assigned fields that do not
  * exist at submission time. All date fields are hydrated `Date` objects.
  */
-export type EventSubmission = Omit<IEvent, 'id' | 'createdAt'>;
+export type EventSubmission = Omit<IEvent, 'id' | 'createdBy' | 'createdAt'>;
