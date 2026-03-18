@@ -1,64 +1,79 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Event } from '@infrastructure/entities/event.entity';
-import { MikroOrmEventReaderAdapter } from '@infrastructure/adapters/mikro-orm-event-reader.adapter';
-import { MikroOrmEventCreatorAdapter } from '@infrastructure/adapters/mikro-orm-event-creator.adapter';
-import { MikroOrmEventMutatorAdapter } from '@infrastructure/adapters/mikro-orm-event-mutator.adapter';
-import { MikroOrmCandidateRepositoryAdapter } from '@infrastructure/adapters/mikro-orm-candidate-repository.adapter';
-import { MikroOrmTransactionManagerAdapter } from '@infrastructure/adapters/mikro-orm-transaction-manager.adapter';
-import { EventsService } from '@services/events.service';
-import { EventsController } from '@controllers/events.controller';
+
+import { MikroOrmEventReaderAdapter }         from '@infrastructure/adapters/events/mikro-orm-event-reader.adapter';
+import { MikroOrmEventWriterAdapter }         from '@infrastructure/adapters/events/mikro-orm-event-writer.adapter';
+import { MikroOrmEventCandidateReaderAdapter } from '@infrastructure/adapters/events/mikro-orm-event-candidate-reader.adapter';
+import { MikroOrmTransactionManagerAdapter }  from '@infrastructure/adapters/events/mikro-orm-transaction-manager.adapter';
+
+import { EventsReadService }  from '@services/events/events-read.service';
+import { EventsWriteService } from '@services/events/events-write.service';
+import { SimilarityEngine }   from '@services/events/similarity/similarity-engine.service';
+
+import { TitleSimilarityRule }  from '@services/events/similarity/rules/title-similarity.rule';
+import { VenueSimilarityRule }  from '@services/events/similarity/rules/venue-similarity.rule';
+import { DateProximityRule }    from '@services/events/similarity/rules/date-proximity.rule';
+import { ExactMatchRule }       from '@services/events/similarity/rules/exact-match.rule';
+
+import { EventsReadController }  from '@controllers/events/events-read.controller';
+import { EventsWriteController } from '@controllers/events/events-write.controller';
+
 import { EventDateTimeAssembler } from '@mappers/event-datetime.assembler';
-import { EVENT_READER } from '@ports/event-reader.port';
-import { EVENT_CREATOR } from '@ports/event-creator.port';
-import { EVENT_MUTATOR } from '@ports/event-mutator.port';
-import { CANDIDATE_REPOSITORY } from '@ports/candidate-repository.port';
-import { TRANSACTION_MANAGER } from '@ports/transaction-manager.port';
+import { EventDateTimeMapper }    from '@mappers/event-datetime.mapper';
+
+import { EVENT_READER }           from '@ports/events/event-reader.port';
+import { EVENT_WRITER }           from '@ports/events/event-writer.port';
+import { EVENT_CANDIDATE_READER } from '@ports/events/event-candidate-reader.port';
+import { TRANSACTION_MANAGER }    from '@ports/transaction-manager.port';
+import { SIMILARITY_ENGINE }      from '@services/events/similarity/similarity-engine.port';
 
 /**
- * Thin wiring module for the events domain.
+ * Single module for all event use cases — reads, writes, and the duplicate-
+ * detection pipeline that guards writes.
  *
- * Each port token maps to exactly one adapter class.
- * Exports all tokens so IngestionModule can consume them without
- * importing any concrete adapter class.
- *
- * | Token                | Adapter                              |
- * |----------------------|--------------------------------------|
- * | EVENT_READER         | MikroOrmEventReaderAdapter           |
- * | EVENT_CREATOR        | MikroOrmEventCreatorAdapter          |
- * | EVENT_MUTATOR        | MikroOrmEventMutatorAdapter          |
- * | CANDIDATE_REPOSITORY | MikroOrmCandidateRepositoryAdapter   |
- * | TRANSACTION_MANAGER  | MikroOrmTransactionManagerAdapter    |
+ * | Token                  | Adapter / Service                    |
+ * |------------------------|--------------------------------------|
+ * | EVENT_READER           | MikroOrmEventReaderAdapter           |
+ * | EVENT_WRITER           | MikroOrmEventWriterAdapter           |
+ * | EVENT_CANDIDATE_READER | MikroOrmEventCandidateReaderAdapter  |
+ * | TRANSACTION_MANAGER    | MikroOrmTransactionManagerAdapter    |
+ * | SIMILARITY_ENGINE      | SimilarityEngine                     |
  */
 @Module({
   imports: [MikroOrmModule.forFeature([Event])],
-  controllers: [EventsController],
+  controllers: [EventsReadController, EventsWriteController],
   providers: [
-    EventsService,
+    // Services
+    EventsReadService,
+    EventsWriteService,
+    SimilarityEngine,
+    // Mappers
     EventDateTimeAssembler,
+    EventDateTimeMapper,
+    // Rules
+    ExactMatchRule,
+    TitleSimilarityRule,
+    VenueSimilarityRule,
+    DateProximityRule,
+    {
+      provide: 'SIMILARITY_RULES',
+      useFactory: (exact: ExactMatchRule, title: TitleSimilarityRule,
+                   venue: VenueSimilarityRule, date: DateProximityRule) =>
+        [exact, title, venue, date],
+      inject: [ExactMatchRule, TitleSimilarityRule, VenueSimilarityRule, DateProximityRule],
+    },
+    // Adapters
     MikroOrmEventReaderAdapter,
-    MikroOrmEventCreatorAdapter,
-    MikroOrmEventMutatorAdapter,
-    MikroOrmCandidateRepositoryAdapter,
+    MikroOrmEventWriterAdapter,
+    MikroOrmEventCandidateReaderAdapter,
     MikroOrmTransactionManagerAdapter,
-    { provide: EVENT_READER, useExisting: MikroOrmEventReaderAdapter },
-    { provide: EVENT_CREATOR, useExisting: MikroOrmEventCreatorAdapter },
-    { provide: EVENT_MUTATOR, useExisting: MikroOrmEventMutatorAdapter },
-    {
-      provide: CANDIDATE_REPOSITORY,
-      useExisting: MikroOrmCandidateRepositoryAdapter,
-    },
-    {
-      provide: TRANSACTION_MANAGER,
-      useExisting: MikroOrmTransactionManagerAdapter,
-    },
-  ],
-  exports: [
-    EVENT_READER,
-    EVENT_CREATOR,
-    EVENT_MUTATOR,
-    CANDIDATE_REPOSITORY,
-    TRANSACTION_MANAGER,
+    // Port tokens
+    { provide: EVENT_READER,           useExisting: MikroOrmEventReaderAdapter },
+    { provide: EVENT_WRITER,           useExisting: MikroOrmEventWriterAdapter },
+    { provide: EVENT_CANDIDATE_READER, useExisting: MikroOrmEventCandidateReaderAdapter },
+    { provide: TRANSACTION_MANAGER,    useExisting: MikroOrmTransactionManagerAdapter },
+    { provide: SIMILARITY_ENGINE,      useExisting: SimilarityEngine },
   ],
 })
 export class EventsModule {}
