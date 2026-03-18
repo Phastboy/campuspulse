@@ -1,0 +1,35 @@
+import { SimilarityRule, SimilarityContext } from '../similarity-rule.interface';
+
+export abstract class TextSimilarityRule implements SimilarityRule {
+  abstract readonly name: string;
+  abstract readonly weight: number;
+  protected abstract extractField(context: SimilarityContext, side: 'submission' | 'candidate'): string;
+  protected abstract noisePattern: RegExp;
+
+  protected substringScore(a: string, b: string): number {
+    const longer = a.length > b.length ? a : b;
+    const shorter = a.length > b.length ? b : a;
+    return shorter.length / longer.length;
+  }
+
+  calculate(context: SimilarityContext): number {
+    const normA = this.normalise(this.extractField(context, 'submission'));
+    const normB = this.normalise(this.extractField(context, 'candidate'));
+    if (normA === normB) return 1;
+    if (normA.includes(normB) || normB.includes(normA))
+      return this.substringScore(normA, normB);
+    return this.jaccard(normA, normB);
+  }
+
+  private normalise(value: string): string {
+    return value.toLowerCase().replace(this.noisePattern, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  private jaccard(a: string, b: string): number {
+    const wordsA = new Set(a.split(' '));
+    const wordsB = new Set(b.split(' '));
+    const intersection = new Set([...wordsA].filter((w) => wordsB.has(w)));
+    const union = new Set([...wordsA, ...wordsB]);
+    return union.size === 0 ? 0 : intersection.size / union.size;
+  }
+}
