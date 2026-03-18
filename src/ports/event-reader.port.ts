@@ -1,12 +1,6 @@
 import { IEvent } from '@domain/interfaces';
-import { EventQuery } from '@domain/types';
-import { PaginatedEvents } from '@domain/types';
+import { EventQuery, PaginatedEvents } from '@application/types';
 
-/**
- * Read-only persistence port for published events.
- *
- * All types are domain types — no HTTP DTOs, no ORM entities.
- */
 export interface IEventReader {
   findAll(query: EventQuery): Promise<PaginatedEvents>;
   findById(id: string): Promise<IEvent | null>;

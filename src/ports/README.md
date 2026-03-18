@@ -1,8 +1,8 @@
 # ports/
 
-All port interfaces and their injection tokens. Ports are the seams between the application layer and infrastructure — they express *what* is needed without specifying *how* it is provided.
+Port interfaces and their injection tokens. Ports are the seams between the application layer and infrastructure — they express *what* is needed without specifying *how* it is provided.
 
-Every port uses only domain types in its signatures. No ORM entities, no DTOs, no framework types cross a port boundary.
+Ports import only from `@domain` and `@application/types`. No framework types, no ORM types, no HTTP types cross a port boundary. Like `domain/`, ports should compile with no npm packages installed.
 
 ```
 ports/
@@ -16,31 +16,33 @@ ports/
 
 ---
 
-## Port map
+## Port → Adapter map
 
-| Port | Token | Implementation | Registered in | Consumed by |
-|------|-------|---------------|---------------|-------------|
-| `IEventReader` | `EVENT_READER` | `MikroOrmEventRepository` | `EventsModule` | `EventsService` |
-| `IEventCreator` | `EVENT_CREATOR` | `MikroOrmEventRepository` | `EventsModule` | `IngestionService` |
-| `IEventMutator` | `EVENT_MUTATOR` | `MikroOrmEventRepository` | `EventsModule` | `EventsService` |
-| `ICandidateRepository` | `CANDIDATE_REPOSITORY` | `MikroOrmEventRepository` | `EventsModule` | `SimilarityEngine` |
-| `ISimilarityEngine` | `SIMILARITY_ENGINE` | `SimilarityEngine` | `IngestionModule` | `IngestionService` |
-| `ITransactionManager` | `TRANSACTION_MANAGER` | `MikroOrmTransactionManager` | `EventsModule` | `IngestionService` |
+| Port | Token | Adapter | Module |
+|------|-------|---------|--------|
+| `IEventReader` | `EVENT_READER` | `MikroOrmEventReaderAdapter` | `EventsModule` |
+| `IEventCreator` | `EVENT_CREATOR` | `MikroOrmEventCreatorAdapter` | `EventsModule` |
+| `IEventMutator` | `EVENT_MUTATOR` | `MikroOrmEventMutatorAdapter` | `EventsModule` |
+| `ICandidateRepository` | `CANDIDATE_REPOSITORY` | `MikroOrmCandidateRepositoryAdapter` | `EventsModule` |
+| `ITransactionManager` | `TRANSACTION_MANAGER` | `MikroOrmTransactionManagerAdapter` | `EventsModule` |
+| `ISimilarityEngine` | `SIMILARITY_ENGINE` | `SimilarityEngine` | `IngestionModule` |
+
+One port. One adapter. Always.
 
 ---
 
 ## Why segregated ports
 
-`MikroOrmEventRepository` implements four interfaces but is registered under four separate tokens. Each consumer injects only the token for the interface it needs:
+Each consumer injects only the token for the interface it needs:
 
-- `IngestionService` injects `EVENT_CREATOR` — it can only call `create`. It cannot call `save`, `remove`, `findAll`, or any read method.
-- `EventsService` injects `EVENT_READER` and `EVENT_MUTATOR` — it can query and mutate, but not create (creation belongs to the ingestion pipeline).
-- `SimilarityEngine` injects `CANDIDATE_REPOSITORY` — it receives only `findCandidatesInWindow`, nothing else.
+- `IngestionService` injects `EVENT_CREATOR` — it can only call `create`. It cannot call `save`, `remove`, or any read method.
+- `EventsService` injects `EVENT_READER` and `EVENT_MUTATOR` — query and mutate, but not create.
+- `SimilarityEngine` injects `CANDIDATE_REPOSITORY` — receives only `findCandidatesInWindow`.
 
-This is Interface Segregation in practice: callers depend only on the methods they actually use.
+This is Interface Segregation enforced at the injection level.
 
 ---
 
 ## Swapping the implementation
 
-Replacing MikroORM with another ORM means writing a new class that implements the relevant interfaces and updating the `useExisting` references in `EventsModule`. No service, no domain type, and no port interface changes.
+To replace MikroORM with another persistence technology: write new adapter classes implementing the relevant port interfaces, update the `useExisting` references in `EventsModule`. No service, no domain type, no port interface changes.
