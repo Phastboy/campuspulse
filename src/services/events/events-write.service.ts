@@ -55,20 +55,20 @@ export class EventsWriteService {
 
   // ── Ingestion (write path with duplicate detection) ──────────────────────
 
-  async submit(data: SubmitEventDto): Promise<IngestionOutcome> {
+  async submit(data: SubmitEventDto, createdBy: string | null = null): Promise<IngestionOutcome> {
     const submission = this.datetimeMapper.toEventSubmission(data);
     const similar = await this.similarityEngine.findSimilar(submission);
     const exactMatch = similar.find((s) => s.score === 1.0);
 
     if (exactMatch) return linked(exactMatch.event.id, 'Event already exists');
     if (similar.length === 0) {
-      const eventId = await this.eventWriter.create(submission);
+      const eventId = await this.eventWriter.create(submission, createdBy);
       return created(eventId, 'Event published successfully');
     }
     return needsDecision(similar, submission);
   }
 
-  async confirm(data: ConfirmSubmissionDto): Promise<IngestionOutcome> {
+  async confirm(data: ConfirmSubmissionDto, createdBy: string | null = null): Promise<IngestionOutcome> {
     if (data.decision === 'duplicate' && data.existingEventId)
       return linked(data.existingEventId, 'Linked to existing event');
 
@@ -84,7 +84,7 @@ export class EventsWriteService {
     }
 
     return this.transactionManager.run(async () => {
-      const eventId = await this.eventWriter.create(submission);
+      const eventId = await this.eventWriter.create(submission, createdBy);
       return created(eventId, 'Event published successfully');
     });
   }
