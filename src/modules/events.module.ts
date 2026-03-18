@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Event } from '@infrastructure/entities/event.entity';
-import { MikroOrmEventRepository } from '@infrastructure/repositories/mikro-orm-event.repository';
-import { MikroOrmTransactionManager } from '@infrastructure/repositories/mikro-orm-transaction-manager';
+import { MikroOrmEventReaderAdapter } from '@infrastructure/adapters/mikro-orm-event-reader.adapter';
+import { MikroOrmEventCreatorAdapter } from '@infrastructure/adapters/mikro-orm-event-creator.adapter';
+import { MikroOrmEventMutatorAdapter } from '@infrastructure/adapters/mikro-orm-event-mutator.adapter';
+import { MikroOrmCandidateRepositoryAdapter } from '@infrastructure/adapters/mikro-orm-candidate-repository.adapter';
+import { MikroOrmTransactionManagerAdapter } from '@infrastructure/adapters/mikro-orm-transaction-manager.adapter';
 import { EventsService } from '@services/events.service';
 import { EventsController } from '@controllers/events.controller';
 import { EventDateTimeAssembler } from '@mappers/event-datetime.assembler';
@@ -15,17 +18,17 @@ import { TRANSACTION_MANAGER } from '@ports/transaction-manager.port';
 /**
  * Thin wiring module for the events domain.
  *
- * Registers `MikroOrmEventRepository` under four segregated port tokens so
- * each consumer receives only the interface it needs. Exports all tokens for
- * use by `IngestionModule`.
+ * Each port token maps to exactly one adapter class.
+ * Exports all tokens so IngestionModule can consume them without
+ * importing any concrete adapter class.
  *
- * | Token                  | Interface              | Consumer           |
- * |------------------------|------------------------|--------------------|
- * | EVENT_READER           | IEventReader           | EventsService      |
- * | EVENT_MUTATOR          | IEventMutator          | EventsService      |
- * | EVENT_CREATOR          | IEventCreator          | IngestionService   |
- * | CANDIDATE_REPOSITORY   | ICandidateRepository   | SimilarityEngine   |
- * | TRANSACTION_MANAGER    | ITransactionManager    | IngestionService   |
+ * | Token                | Adapter                              |
+ * |----------------------|--------------------------------------|
+ * | EVENT_READER         | MikroOrmEventReaderAdapter           |
+ * | EVENT_CREATOR        | MikroOrmEventCreatorAdapter          |
+ * | EVENT_MUTATOR        | MikroOrmEventMutatorAdapter          |
+ * | CANDIDATE_REPOSITORY | MikroOrmCandidateRepositoryAdapter   |
+ * | TRANSACTION_MANAGER  | MikroOrmTransactionManagerAdapter    |
  */
 @Module({
   imports: [MikroOrmModule.forFeature([Event])],
@@ -33,13 +36,22 @@ import { TRANSACTION_MANAGER } from '@ports/transaction-manager.port';
   providers: [
     EventsService,
     EventDateTimeAssembler,
-    MikroOrmEventRepository,
-    MikroOrmTransactionManager,
-    { provide: EVENT_READER, useExisting: MikroOrmEventRepository },
-    { provide: EVENT_CREATOR, useExisting: MikroOrmEventRepository },
-    { provide: EVENT_MUTATOR, useExisting: MikroOrmEventRepository },
-    { provide: CANDIDATE_REPOSITORY, useExisting: MikroOrmEventRepository },
-    { provide: TRANSACTION_MANAGER, useExisting: MikroOrmTransactionManager },
+    MikroOrmEventReaderAdapter,
+    MikroOrmEventCreatorAdapter,
+    MikroOrmEventMutatorAdapter,
+    MikroOrmCandidateRepositoryAdapter,
+    MikroOrmTransactionManagerAdapter,
+    { provide: EVENT_READER, useExisting: MikroOrmEventReaderAdapter },
+    { provide: EVENT_CREATOR, useExisting: MikroOrmEventCreatorAdapter },
+    { provide: EVENT_MUTATOR, useExisting: MikroOrmEventMutatorAdapter },
+    {
+      provide: CANDIDATE_REPOSITORY,
+      useExisting: MikroOrmCandidateRepositoryAdapter,
+    },
+    {
+      provide: TRANSACTION_MANAGER,
+      useExisting: MikroOrmTransactionManagerAdapter,
+    },
   ],
   exports: [
     EVENT_READER,

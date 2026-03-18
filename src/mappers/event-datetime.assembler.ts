@@ -1,4 +1,8 @@
-import { AllDayDate, EventDateTime, SpecificDateTime } from '@common/datetime';
+import {
+  AllDayDate,
+  EventDateTime,
+  SpecificDateTime,
+} from '@domain/value-objects';
 import { InvalidDatetimeError } from '@domain/errors';
 import { UpdateEventDto } from '@dto/update-event.dto';
 

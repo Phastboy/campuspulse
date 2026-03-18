@@ -1,5 +1,5 @@
-import { EventDateTime } from '@common/datetime';
-import { EventSummary } from '@domain/types';
+import { EventDateTime } from '@domain/value-objects';
+import { EventSummary } from '@application/types';
 
 type RawDatetimeJson = {
   type: EventDateTime['type'];

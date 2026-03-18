@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { SimilarityRule, SimilarityContext } from './similarity-rule.interface';
-import { SimilarityMatch } from '@domain/types';
-import { EventSummary } from '@domain/types';
+import { SimilarityMatch } from '@application/types';
+import { EventSummary } from '@application/types';
 
 interface RuleOutcome {
   name: string;

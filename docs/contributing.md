@@ -40,16 +40,17 @@ Types: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`. Keep the summ
 
 Read [`docs/architecture.md`](architecture.md) before writing code. The rules that must not be broken:
 
-- Dependencies flow inward only: HTTP → Application → Ports → Domain ← Infrastructure
-- `domain/` must not import from any framework, ORM, or HTTP library — only `@common`
-- Services must not import from `@infrastructure` directly — only through port interfaces
-- Controllers must not contain business logic — delegate entirely to services
-- Port interfaces use only domain types in their signatures — no DTOs, no ORM entities, no Swagger decorators
-- Services return domain types — never HTTP DTOs decorated with `@ApiProperty`
-- The mapping from domain types to HTTP DTOs happens exclusively in controllers
-- Nothing in `@common` may import from any other `src/` directory
+- `domain/` imports nothing from `src/` and nothing from npm — it must compile standalone
+- `ports/` imports only from `@domain` and `@application/types` — same zero-npm-dependency guarantee
+- `application/types/` imports only from `@domain` — no framework, no ORM, no HTTP
+- Services depend on ports only — never import from `@infrastructure` directly
+- Controllers contain no business logic — map DTOs to application types, call a service, map back
+- Services return application types (`IngestionOutcome`, `SimilarityMatch`) — never Swagger-decorated DTOs
+- The mapping from application types to HTTP DTOs happens exclusively in controllers
+- `common/` imports nothing from `src/` — it is a pure utility with no domain knowledge
 - MikroORM imports are permitted only in `src/infrastructure/`
 - Every ORM entity must `implement` its corresponding domain interface from `@domain/interfaces`
+- Each adapter class implements exactly one port interface — never two or more
 
 A PR that breaks a layer boundary will not be merged regardless of CI status.
 
@@ -57,12 +58,14 @@ A PR that breaks a layer boundary will not be merged regardless of CI status.
 
 ## Where new code goes
 
-With the flat structure, placement is unambiguous:
-
 | What you're adding | Where it goes |
 |--------------------|--------------|
-| New entity | `src/infrastructure/entities/` + interface in `src/domain/interfaces/` |
+| New domain concept (what a thing *is*) | `src/domain/interfaces/` or `src/domain/value-objects/` |
+| New domain error | `src/domain/errors/` |
+| New application coordination type | `src/application/types/` |
 | New port | `src/ports/` |
+| New adapter (one per port) | `src/infrastructure/adapters/` |
+| New ORM entity | `src/infrastructure/entities/` |
 | New service | `src/services/` |
 | New controller | `src/controllers/` |
 | New DTO | `src/dto/` |

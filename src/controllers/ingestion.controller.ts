@@ -11,7 +11,7 @@ import {
   NeedsDecisionResult,
 } from '@dto/ingestion-result.dto';
 import { ScoredEvent } from '@dto/similarity.dto';
-import { IngestionOutcome, SimilarityMatch } from '@domain/types';
+import { IngestionOutcome, SimilarityMatch } from '@application/types';
 
 /**
  * HTTP boundary for the two-step event submission pipeline.
