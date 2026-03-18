@@ -5,13 +5,13 @@ The only layer permitted to import MikroORM. Adapts external technology (ORM, da
 ```
 infrastructure/
 ├── entities/
-│   └── event.entity.ts                         Implements IEvent
+│   └── event.entity.ts                           Implements IEvent
 └── adapters/
-    ├── mikro-orm-event-reader.adapter.ts        Implements IEventReader
-    ├── mikro-orm-event-creator.adapter.ts       Implements IEventCreator
-    ├── mikro-orm-event-mutator.adapter.ts       Implements IEventMutator
-    ├── mikro-orm-candidate-repository.adapter.ts Implements ICandidateRepository
-    └── mikro-orm-transaction-manager.adapter.ts Implements ITransactionManager
+    ├── mikro-orm-event-reader.adapter.ts          Implements IEventReader
+    ├── mikro-orm-event-creator.adapter.ts         Implements IEventCreator
+    ├── mikro-orm-event-repository.adapter.ts      Implements IEventRepository
+    ├── mikro-orm-candidate-repository.adapter.ts  Implements ICandidateRepository
+    └── mikro-orm-transaction-manager.adapter.ts   Implements ITransactionManager
 ```
 
 ---
@@ -34,7 +34,7 @@ Each adapter is a thin delegation class. The shared `EntityManager` is injected 
 
 **`MikroOrmEventCreatorAdapter`** — `create`: persists a new event from an `EventSubmission`.
 
-**`MikroOrmEventMutatorAdapter`** — `save` (flush pending mutations) and `remove`.
+**`MikroOrmEventRepositoryAdapter`** — `update(id, changes)` applies an explicit `EventChanges` object via `assign` + `flush`. `delete(id)` locates the record itself and removes it. No Unit of Work, no entity references from the caller.
 
 **`MikroOrmCandidateRepositoryAdapter`** — `findCandidatesInWindow`: fetches events within a date range and projects `Event → EventSummary` internally, so the ingestion layer never receives an ORM entity.
 

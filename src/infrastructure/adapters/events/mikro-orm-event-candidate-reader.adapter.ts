@@ -3,16 +3,10 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { Event } from '@infrastructure/entities/event.entity';
 import { EventSummary } from '@application/types';
-import { ICandidateRepository } from '@ports/candidate-repository.port';
+import { IEventCandidateReader } from '@ports/events/event-candidate-reader.port';
 
-/**
- * MikroORM adapter for {@link ICandidateRepository}.
- * Fetches candidate events within a date window for similarity scoring.
- * Projects Event → EventSummary internally so the ingestion layer never
- * receives an ORM entity.
- */
 @Injectable()
-export class MikroOrmCandidateRepositoryAdapter implements ICandidateRepository {
+export class MikroOrmEventCandidateReaderAdapter implements IEventCandidateReader {
   constructor(
     @InjectRepository(Event)
     private readonly repo: EntityRepository<Event>,

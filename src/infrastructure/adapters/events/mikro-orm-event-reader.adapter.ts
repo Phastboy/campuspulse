@@ -5,12 +5,8 @@ import { EntityRepository } from '@mikro-orm/postgresql';
 import { Event } from '@infrastructure/entities/event.entity';
 import { IEvent } from '@domain/interfaces';
 import { EventQuery, PaginatedEvents } from '@application/types';
-import { IEventReader } from '@ports/event-reader.port';
+import { IEventReader } from '@ports/events/event-reader.port';
 
-/**
- * MikroORM adapter for {@link IEventReader}.
- * Handles all read queries against the `events` table.
- */
 @Injectable()
 export class MikroOrmEventReaderAdapter implements IEventReader {
   constructor(
@@ -20,16 +16,12 @@ export class MikroOrmEventReaderAdapter implements IEventReader {
 
   async findAll(query: EventQuery): Promise<PaginatedEvents> {
     const qb = this.repo.createQueryBuilder('e');
-
-    if (query.fromDate) {
+    if (query.fromDate)
       qb.andWhere(`(e.datetime->>'date')::timestamptz >= ?`, [query.fromDate]);
-    }
-    if (query.toDate) {
+    if (query.toDate)
       qb.andWhere(`(e.datetime->>'date')::timestamptz <= ?`, [query.toDate]);
-    }
-    if (query.type) {
+    if (query.type)
       qb.andWhere(`e.datetime->>'type' = ?`, [query.type]);
-    }
 
     const total = await qb.clone().count('id', true).getCount();
     const items = await qb
