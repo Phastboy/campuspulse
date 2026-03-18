@@ -1,36 +1,49 @@
 # infrastructure/
 
-The only layer allowed to import MikroORM. Everything here adapts external technology (the ORM, the database driver) to the domain contracts defined in `ports/` and `domain/`.
+The only layer permitted to import MikroORM. Adapts external technology (ORM, database driver) to the contracts defined in `ports/` and `domain/`.
 
 ```
 infrastructure/
 ├── entities/
-│   └── event.entity.ts                   MikroORM entity — implements IEvent
-└── repositories/
-    ├── mikro-orm-event.repository.ts      Implements IEventReader, IEventCreator, IEventMutator, ICandidateRepository
-    └── mikro-orm-transaction-manager.ts   Implements ITransactionManager
+│   └── event.entity.ts                         Implements IEvent
+└── adapters/
+    ├── mikro-orm-event-reader.adapter.ts        Implements IEventReader
+    ├── mikro-orm-event-creator.adapter.ts       Implements IEventCreator
+    ├── mikro-orm-event-mutator.adapter.ts       Implements IEventMutator
+    ├── mikro-orm-candidate-repository.adapter.ts Implements ICandidateRepository
+    └── mikro-orm-transaction-manager.adapter.ts Implements ITransactionManager
 ```
 
 ---
 
 ## entities/
 
-**`event.entity.ts`** — the MikroORM `@Entity` class for the `events` table. It explicitly `implements IEvent` from `@domain/interfaces`. This is the architectural inversion enforced at the type level: the domain defines the contract; the entity must satisfy it. If a field is added to `IEvent` but not to the entity, or if a type changes incompatibly, TypeScript fails the build.
+**`event.entity.ts`** — the MikroORM `@Entity` class for the `events` table. Explicitly `implements IEvent` — if the entity ever diverges from what the domain expects, TypeScript fails the build at compile time. Infrastructure conforms to domain, never the reverse.
 
-The `datetime` field is stored as `jsonb` to hold the `EventDateTime` discriminated union without separate columns. MikroORM does not hydrate nested `Date` objects inside JSONB — `datetime.date` and `datetime.startTime` arrive as ISO strings at runtime. Use `getComparableDateFromSummary` from `@helpers` when a reliable `Date` is needed.
+The `datetime` field is stored as `jsonb`. MikroORM does not hydrate nested `Date` objects inside JSONB — `datetime.date` and `datetime.startTime` may arrive as ISO strings at runtime. Use `getComparableDateFromSummary` from `@helpers` when a reliable `Date` is needed.
 
 ---
 
-## repositories/
+## adapters/
 
-**`mikro-orm-event.repository.ts`** — `MikroOrmEventRepository`, the sole MikroORM class for event persistence. Implements all four event-related port interfaces and is registered under four injection tokens in `EventsModule`. The `findCandidatesInWindow` method projects `Event → EventSummary` internally — the ingestion layer never receives a raw ORM entity.
+One adapter per port. No adapter implements more than one port interface — this is a strict rule. If an adapter needed to implement two ports, that would indicate the ports are not properly segregated or that shared infrastructure state (an `EntityManager`) is being conflated with the interface contract.
 
-**`mikro-orm-transaction-manager.ts`** — `MikroOrmTransactionManager`, wraps `EntityManager.transactional()` behind the `ITransactionManager` interface. Callers express "run this atomically" without importing anything from MikroORM.
+Each adapter is a thin delegation class. The shared `EntityManager` is injected by NestJS's DI container, so multiple adapters can use the same ORM session within a request without coupling to each other.
+
+**`MikroOrmEventReaderAdapter`** — read queries: `findAll` (paginated, filtered), `findById`, `findByVenue`.
+
+**`MikroOrmEventCreatorAdapter`** — `create`: persists a new event from an `EventSubmission`.
+
+**`MikroOrmEventMutatorAdapter`** — `save` (flush pending mutations) and `remove`.
+
+**`MikroOrmCandidateRepositoryAdapter`** — `findCandidatesInWindow`: fetches events within a date range and projects `Event → EventSummary` internally, so the ingestion layer never receives an ORM entity.
+
+**`MikroOrmTransactionManagerAdapter`** — wraps `EntityManager.transactional()` behind the `ITransactionManager` interface.
 
 ---
 
 ## Rules for this directory
 
-- May import from `@domain`, `@ports`, and `@common`
-- Must never import from `@services`, `@controllers`, or `@dto`
-- MikroORM imports are permitted here and **only** here — no other directory may import from `@mikro-orm/*`
+- MikroORM imports are permitted here and **only** here
+- Must not import from `@services`, `@controllers`, `@dto`, or `@similarity`
+- Each adapter class implements exactly one port interface
