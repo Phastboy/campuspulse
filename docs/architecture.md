@@ -44,8 +44,11 @@ graph LR
   end
 
   subgraph infrastructure ["infrastructure"]
-    MikroOrmEventRepository["MikroOrmEventRepository"]
-    MikroOrmTransactionManager["MikroOrmTransactionManager"]
+    MikroOrmCandidateRepositoryAdapter["MikroOrmCandidateRepositoryAdapter"]
+    MikroOrmEventCreatorAdapter["MikroOrmEventCreatorAdapter"]
+    MikroOrmEventMutatorAdapter["MikroOrmEventMutatorAdapter"]
+    MikroOrmEventReaderAdapter["MikroOrmEventReaderAdapter"]
+    MikroOrmTransactionManagerAdapter["MikroOrmTransactionManagerAdapter"]
   end
 
   subgraph rules ["rules"]
@@ -80,8 +83,11 @@ graph LR
   classDef port  fill:none,stroke:#78909c,color:#90a4ae,stroke-dasharray:5 5
   class EventsController ctrl
   class IngestionController ctrl
-  class MikroOrmEventRepository infra
-  class MikroOrmTransactionManager infra
+  class MikroOrmCandidateRepositoryAdapter svc
+  class MikroOrmEventCreatorAdapter svc
+  class MikroOrmEventMutatorAdapter svc
+  class MikroOrmEventReaderAdapter svc
+  class MikroOrmTransactionManagerAdapter svc
   class DateProximityRule svc
   class ExactMatchRule svc
   class TitleSimilarityRule svc
@@ -119,11 +125,6 @@ graph TB
     IEvent(["«if» IEvent"])
   end
 
-  subgraph infrastructure ["Infrastructure Layer · Repositories · ORM"]
-    MikroOrmEventRepository["MikroOrmEventRepository"]
-    MikroOrmTransactionManager["MikroOrmTransactionManager"]
-  end
-
   http          --> application
   application   --> port
   port          --> domain
@@ -141,8 +142,6 @@ graph TB
   class IngestionService app
   class SimilarityEngine app
   class IEvent port
-  class MikroOrmEventRepository infra
-  class MikroOrmTransactionManager infra
 ```
 
 ---
@@ -167,4 +166,4 @@ graph TB
 
 ---
 
-_Generated: 2026-03-17T13:10:58.434Z_
+_Generated: 2026-03-18T06:06:05.025Z_

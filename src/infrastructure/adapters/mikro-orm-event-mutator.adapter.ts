@@ -11,7 +11,7 @@ import { IEventMutator } from '@ports/event-mutator.port';
 export class MikroOrmEventMutatorAdapter implements IEventMutator {
   constructor(private readonly em: EntityManager) {}
 
-  async save(_event: IEvent): Promise<void> {
+  async save(): Promise<void> {
     await this.em.flush();
   }
 
