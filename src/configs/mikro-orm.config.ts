@@ -7,14 +7,22 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 /**
- * MikroORM configuration for the PostgreSQL driver.
- *
- * Used both by the NestJS app (via `MikroOrmModule.forRoot`) and by the
- * MikroORM CLI (`pnpm migration:*`) through `configPaths` in `package.json`.
+ * Pool notes for Supabase transaction pooler (port 6543):
+ * - keepAlive disabled — the pooler drops idle connections; keepAlive probes
+ *   on dead connections emit unhandled pg pool errors that crash the process.
+ * - pool.min=0 so MikroORM never holds idle connections the pooler will kill.
+ * - pool.idleTimeoutMillis retires connections before the pooler drops them.
  */
 const config: Partial<Options> = {
   driver: PostgreSqlDriver,
-  driverOptions: { keepAlive: true },
+  driverOptions: {
+    keepAlive: false,
+    pool: {
+      min: 0,
+      max: 10,
+      idleTimeoutMillis: 10_000,
+    },
+  },
   clientUrl: process.env.DATABASE_URL,
   entities: ['./dist/**/*.entity.js'],
   entitiesTs: ['./src/**/*.entity.ts'],
