@@ -15,15 +15,12 @@ graph TD
 
   AppModule([AppModule])
   EventsModule[EventsModule]
-  IngestionModule[IngestionModule]
 
-  IngestionModule -->|imports| EventsModule
 
   classDef root    fill:#1a1a2e,stroke:#e94560,color:#fff,font-weight:bold
   classDef feature fill:#16213e,stroke:#0f3460,color:#e0e0e0
   class AppModule root
   class EventsModule feature
-  class IngestionModule feature
 ```
 
 ---
@@ -39,38 +36,31 @@ graph LR
   %% Solid arrow → direct dependency    Dashed arrow -.-> via port token
 
   subgraph controllers ["controllers"]
-    EventsController["EventsController"]
-    IngestionController["IngestionController"]
+    EventsReadController["EventsReadController"]
+    EventsWriteController["EventsWriteController"]
   end
 
   subgraph infrastructure ["infrastructure"]
-    MikroOrmCandidateRepositoryAdapter["MikroOrmCandidateRepositoryAdapter"]
-    MikroOrmEventCreatorAdapter["MikroOrmEventCreatorAdapter"]
-    MikroOrmEventMutatorAdapter["MikroOrmEventMutatorAdapter"]
+    MikroOrmEventCandidateReaderAdapter["MikroOrmEventCandidateReaderAdapter"]
     MikroOrmEventReaderAdapter["MikroOrmEventReaderAdapter"]
+    MikroOrmEventWriterAdapter["MikroOrmEventWriterAdapter"]
     MikroOrmTransactionManagerAdapter["MikroOrmTransactionManagerAdapter"]
   end
 
-  subgraph rules ["rules"]
+  subgraph services ["services"]
+    EventsReadService["EventsReadService"]
+    EventsWriteService["EventsWriteService"]
     DateProximityRule["DateProximityRule"]
     ExactMatchRule["ExactMatchRule"]
     TitleSimilarityRule["TitleSimilarityRule"]
     VenueSimilarityRule["VenueSimilarityRule"]
-  end
-
-  subgraph services ["services"]
-    EventsService["EventsService"]
-    IngestionService["IngestionService"]
-  end
-
-  subgraph similarity ["similarity"]
     SimilarityEngine["SimilarityEngine"]
   end
 
-  EventsController --> EventsService
-  IngestionController --> IngestionService
-  EventsService --> EventDateTimeAssembler
-  IngestionService --> EventDateTimeMapper
+  EventsReadController --> EventsReadService
+  EventsWriteController --> EventsWriteService
+  EventsWriteService --> EventDateTimeAssembler
+  EventsWriteService --> EventDateTimeMapper
   SimilarityEngine --> RuleEvaluator
 
   subgraph ports_sg ["port interfaces"]
@@ -81,19 +71,18 @@ graph LR
   classDef svc   fill:#16213e,stroke:#533483,color:#e0e0e0
   classDef infra fill:#1a1a2e,stroke:#2196f3,color:#b0bec5
   classDef port  fill:none,stroke:#78909c,color:#90a4ae,stroke-dasharray:5 5
-  class EventsController ctrl
-  class IngestionController ctrl
-  class MikroOrmCandidateRepositoryAdapter svc
-  class MikroOrmEventCreatorAdapter svc
-  class MikroOrmEventMutatorAdapter svc
+  class EventsReadController ctrl
+  class EventsWriteController ctrl
+  class MikroOrmEventCandidateReaderAdapter svc
   class MikroOrmEventReaderAdapter svc
+  class MikroOrmEventWriterAdapter svc
   class MikroOrmTransactionManagerAdapter svc
+  class EventsReadService svc
+  class EventsWriteService svc
   class DateProximityRule svc
   class ExactMatchRule svc
   class TitleSimilarityRule svc
   class VenueSimilarityRule svc
-  class EventsService svc
-  class IngestionService svc
   class SimilarityEngine svc
   class IEvent port
 ```
@@ -111,13 +100,18 @@ graph TB
 
   subgraph http ["HTTP Layer · Controllers · DTOs · Filters"]
     AllExceptionsFilter["AllExceptionsFilter"]
-    EventsController["EventsController"]
-    IngestionController["IngestionController"]
+    EventsReadController["EventsReadController"]
+    EventsWriteController["EventsWriteController"]
   end
 
   subgraph application ["Application Layer · Services · Mappers · Rules"]
-    EventsService["EventsService"]
-    IngestionService["IngestionService"]
+    EventsReadService["EventsReadService"]
+    EventsWriteService["EventsWriteService"]
+    TextSimilarityRule["TextSimilarityRule"]
+    DateProximityRule["DateProximityRule"]
+    ExactMatchRule["ExactMatchRule"]
+    TitleSimilarityRule["TitleSimilarityRule"]
+    VenueSimilarityRule["VenueSimilarityRule"]
     SimilarityEngine["SimilarityEngine"]
   end
 
@@ -136,10 +130,15 @@ graph TB
   classDef domain fill:#e65100,stroke:#ef6c00,color:#fff3e0
   classDef infra  fill:#37474f,stroke:#455a64,color:#eceff1
   class AllExceptionsFilter http
-  class EventsController http
-  class IngestionController http
-  class EventsService app
-  class IngestionService app
+  class EventsReadController http
+  class EventsWriteController http
+  class EventsReadService app
+  class EventsWriteService app
+  class TextSimilarityRule app
+  class DateProximityRule app
+  class ExactMatchRule app
+  class TitleSimilarityRule app
+  class VenueSimilarityRule app
   class SimilarityEngine app
   class IEvent port
 ```
@@ -166,4 +165,4 @@ graph TB
 
 ---
 
-_Generated: 2026-03-18T06:06:05.025Z_
+_Generated: 2026-03-18T10:58:28.262Z_
