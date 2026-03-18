@@ -9,14 +9,18 @@ type RawDatetimeJson = {
   endDate?: Date | string | number;
 };
 
-function parseDateValue(value: Date | string | number | undefined): Date | null {
+function parseDateValue(
+  value: Date | string | number | undefined,
+): Date | null {
   if (value === undefined || value === null) return null;
   if (value instanceof Date) return value;
   const parsed = new Date(value);
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function getComparableDateFromSummary(summary: EventSummary): Date | null {
+export function getComparableDateFromSummary(
+  summary: EventSummary,
+): Date | null {
   if (summary.datetime && typeof summary.datetime === 'object') {
     const raw = summary.datetime as unknown as RawDatetimeJson;
     if ('date' in raw) return parseDateValue(raw.date);

@@ -1,9 +1,15 @@
-import { SimilarityRule, SimilarityContext } from '../similarity-rule.interface';
+import {
+  SimilarityRule,
+  SimilarityContext,
+} from '../similarity-rule.interface';
 
 export abstract class TextSimilarityRule implements SimilarityRule {
   abstract readonly name: string;
   abstract readonly weight: number;
-  protected abstract extractField(context: SimilarityContext, side: 'submission' | 'candidate'): string;
+  protected abstract extractField(
+    context: SimilarityContext,
+    side: 'submission' | 'candidate',
+  ): string;
   protected abstract noisePattern: RegExp;
 
   protected substringScore(a: string, b: string): number {
@@ -22,7 +28,11 @@ export abstract class TextSimilarityRule implements SimilarityRule {
   }
 
   private normalise(value: string): string {
-    return value.toLowerCase().replace(this.noisePattern, ' ').replace(/\s+/g, ' ').trim();
+    return value
+      .toLowerCase()
+      .replace(this.noisePattern, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private jaccard(a: string, b: string): number {

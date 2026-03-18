@@ -8,9 +8,16 @@ export class VenueSimilarityRule extends TextSimilarityRule {
   readonly weight = 0.3;
   protected noisePattern = /[^\w\s]/g;
 
-  protected extractField(context: SimilarityContext, side: 'submission' | 'candidate'): string {
-    return side === 'submission' ? context.submission.venue : context.candidate.venue;
+  protected extractField(
+    context: SimilarityContext,
+    side: 'submission' | 'candidate',
+  ): string {
+    return side === 'submission'
+      ? context.submission.venue
+      : context.candidate.venue;
   }
 
-  protected substringScore(): number { return 0.9; }
+  protected substringScore(): number {
+    return 0.9;
+  }
 }

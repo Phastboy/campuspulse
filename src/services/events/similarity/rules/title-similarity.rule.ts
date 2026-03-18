@@ -8,7 +8,12 @@ export class TitleSimilarityRule extends TextSimilarityRule {
   readonly weight = 0.5;
   protected noisePattern = /[^\w\s]/g;
 
-  protected extractField(context: SimilarityContext, side: 'submission' | 'candidate'): string {
-    return side === 'submission' ? context.submission.title : context.candidate.title;
+  protected extractField(
+    context: SimilarityContext,
+    side: 'submission' | 'candidate',
+  ): string {
+    return side === 'submission'
+      ? context.submission.title
+      : context.candidate.title;
   }
 }
