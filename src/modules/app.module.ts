@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { IngestionModule } from './ingestion.module';
+import { EventsModule } from './events.module';
 import mikroOrmConfig from '@configs/mikro-orm.config';
 import { validateConfig } from '@configs/validation';
 
@@ -13,7 +13,7 @@ import { validateConfig } from '@configs/validation';
       validate: validateConfig,
     }),
     MikroOrmModule.forRoot(mikroOrmConfig),
-    IngestionModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

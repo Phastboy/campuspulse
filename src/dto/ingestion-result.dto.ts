@@ -36,7 +36,7 @@ export class LinkedResult {
  *
  * `similar` contains {@link ScoredEvent} — the Swagger-decorated HTTP
  * projection of {@link SimilarityMatch}. The mapping happens in
- * {@link IngestionController} before this object is returned.
+ * {@link EventsWriteController} before this object is returned.
  */
 export class NeedsDecisionResult {
   readonly action!: 'needs_decision';
