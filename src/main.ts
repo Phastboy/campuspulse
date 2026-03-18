@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as os from 'os';
+import cookieParser from 'cookie-parser';
 
 import { AppModule } from '@modules/app.module';
-import { AllExceptionsFilter } from '@common/filters/all-exceptions.filter';
+import { AllExceptionsFilter } from '@infrastructure/http/all-exceptions.filter';
 import { SwaggerSetup } from '@configs/swagger.config';
 import { AppConfig } from '@configs/validation';
 
@@ -21,6 +22,7 @@ async function bootstrap(): Promise<void> {
   const configService = app.get(ConfigService<AppConfig>);
 
   app.setGlobalPrefix(configService.get('GLOBAL_PREFIX') as string);
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -33,7 +35,7 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalFilters(new AllExceptionsFilter());
   SwaggerSetup.register(app);
-  app.enableCors();
+  app.enableCors({ credentials: true });
 
   const port = configService.get('PORT') as number;
   await app.listen(port);
@@ -47,9 +49,7 @@ function logNetworkAddresses(app: INestApplication, port: number): void {
     for (const iface of Object.values(interfaces)) {
       if (!iface) continue;
       for (const alias of iface) {
-        if (alias.family === 'IPv4' && !alias.internal) {
-          addresses.push(alias.address);
-        }
+        if (alias.family === 'IPv4' && !alias.internal) addresses.push(alias.address);
       }
     }
   } catch {

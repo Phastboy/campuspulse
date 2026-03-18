@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -16,6 +17,7 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { EventsWriteService } from '@services/events/events-write.service';
 import { UpdateEventDto } from '@dto/update-event.dto';
@@ -29,7 +31,9 @@ import {
   NeedsDecisionResult,
 } from '@dto/ingestion-result.dto';
 import { ScoredEvent } from '@dto/similarity.dto';
-import { IngestionOutcome, SimilarityMatch } from '@application/types';
+import { IngestionOutcome, SimilarityMatch, type AccessTokenPayload } from '@application/types';
+import { JwtAuthGuard } from '@infrastructure/http/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/http/current-user.decorator';
 
 @ApiTags('events')
 @Controller('events')
@@ -50,10 +54,13 @@ export class EventsWriteController {
     description: '`created` | `linked` | `needs_decision`',
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   async submit(
     @Body() data: SubmitEventDto,
+    @CurrentUser() user: AccessTokenPayload,
   ): Promise<AppApiResponse<IngestionResult>> {
-    const outcome = await this.eventsWriteService.submit(data);
+    const outcome = await this.eventsWriteService.submit(data, user?.sub ?? null);
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
 
@@ -63,10 +70,13 @@ export class EventsWriteController {
   @ApiBody({ type: ConfirmSubmissionDto })
   @ApiResponse({ status: 200, description: '`created` | `linked`' })
   @ApiResponse({ status: 400, description: 'Validation error' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   async confirm(
     @Body() data: ConfirmSubmissionDto,
+    @CurrentUser() user: AccessTokenPayload,
   ): Promise<AppApiResponse<IngestionResult>> {
-    const outcome = await this.eventsWriteService.confirm(data);
+    const outcome = await this.eventsWriteService.confirm(data, user?.sub ?? null);
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
 
