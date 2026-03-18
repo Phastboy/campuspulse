@@ -13,7 +13,8 @@ import { EventSubmission, EventChanges } from '@application/types';
  * - `delete` takes an ID — adapter locates and removes the record itself.
  */
 export interface IEventWriter {
-  create(submission: EventSubmission): Promise<string>;
+  /** `createdBy` is the authenticated user's ID, or `null` for anonymous submissions. */
+  create(submission: EventSubmission, createdBy: string | null): Promise<string>;
   update(id: string, changes: EventChanges): Promise<void>;
   delete(id: string): Promise<void>;
 }
