@@ -1,9 +1,10 @@
-import {
-  Inject, Injectable, Logger, NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { IEvent } from '@domain/interfaces';
 import { EventQuery, PaginatedEvents } from '@application/types';
-import { type IEventReader, EVENT_READER } from '@ports/events/event-reader.port';
+import {
+  type IEventReader,
+  EVENT_READER,
+} from '@ports/events/event-reader.port';
 
 @Injectable()
 export class EventsReadService {

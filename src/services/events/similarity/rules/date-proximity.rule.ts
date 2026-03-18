@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SimilarityRule, SimilarityContext } from '../similarity-rule.interface';
+import {
+  SimilarityRule,
+  SimilarityContext,
+} from '../similarity-rule.interface';
 import { getComparableDateFromSummary } from '../helpers/event-date.helper';
 
 @Injectable()
@@ -14,10 +17,13 @@ export class DateProximityRule implements SimilarityRule {
       const submissionDate = context.submission.datetime.date;
       const candidateDate = getComparableDateFromSummary(context.candidate);
       if (!(submissionDate instanceof Date) || !candidateDate) return 0;
-      const daysDiff = Math.abs(candidateDate.getTime() - submissionDate.getTime()) / 86400000;
+      const daysDiff =
+        Math.abs(candidateDate.getTime() - submissionDate.getTime()) / 86400000;
       return Math.max(0, 1 - daysDiff / this.DECAY_WINDOW_DAYS);
     } catch (error: unknown) {
-      this.logger.error(`Date proximity error: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Date proximity error: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return 0;
     }
   }
@@ -26,6 +32,8 @@ export class DateProximityRule implements SimilarityRule {
     try {
       const { date } = context.submission.datetime;
       return date instanceof Date && !isNaN(date.getTime());
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 }

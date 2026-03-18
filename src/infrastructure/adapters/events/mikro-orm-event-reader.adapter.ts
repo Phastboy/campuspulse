@@ -20,8 +20,7 @@ export class MikroOrmEventReaderAdapter implements IEventReader {
       qb.andWhere(`(e.datetime->>'date')::timestamptz >= ?`, [query.fromDate]);
     if (query.toDate)
       qb.andWhere(`(e.datetime->>'date')::timestamptz <= ?`, [query.toDate]);
-    if (query.type)
-      qb.andWhere(`e.datetime->>'type' = ?`, [query.type]);
+    if (query.type) qb.andWhere(`e.datetime->>'type' = ?`, [query.type]);
 
     const total = await qb.clone().count('id', true).getCount();
     const items = await qb

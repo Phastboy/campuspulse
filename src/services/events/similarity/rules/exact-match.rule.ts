@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { SimilarityRule, SimilarityContext } from '../similarity-rule.interface';
-import { getComparableDateFromSummary, isSameDay } from '../helpers/event-date.helper';
+import {
+  SimilarityRule,
+  SimilarityContext,
+} from '../similarity-rule.interface';
+import {
+  getComparableDateFromSummary,
+  isSameDay,
+} from '../helpers/event-date.helper';
 
 @Injectable()
 export class ExactMatchRule implements SimilarityRule {
@@ -16,8 +22,14 @@ export class ExactMatchRule implements SimilarityRule {
       context.candidate.venue.toLowerCase().trim();
     const candidateDate = getComparableDateFromSummary(context.candidate);
     if (!candidateDate) return 0;
-    return titleMatch && venueMatch && isSameDay(context.submission.datetime.date, candidateDate) ? 1 : 0;
+    return titleMatch &&
+      venueMatch &&
+      isSameDay(context.submission.datetime.date, candidateDate)
+      ? 1
+      : 0;
   }
 
-  isApplicable(): boolean { return true; }
+  isApplicable(): boolean {
+    return true;
+  }
 }

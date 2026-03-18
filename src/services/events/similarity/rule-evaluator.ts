@@ -20,7 +20,10 @@ export class RuleEvaluator {
 
   constructor(private readonly rules: SimilarityRule[]) {}
 
-  async score(candidate: EventSummary, context: SimilarityContext): Promise<SimilarityMatch> {
+  async score(
+    candidate: EventSummary,
+    context: SimilarityContext,
+  ): Promise<SimilarityMatch> {
     const eligible = this.rules.filter((r) => r.name !== 'exact');
     const settled = await Promise.allSettled(
       eligible.map((rule) => this.runRule(rule, context)),
@@ -29,34 +32,49 @@ export class RuleEvaluator {
     return { event: candidate, score, matches };
   }
 
-  private runRule(rule: SimilarityRule, context: SimilarityContext): Promise<RuleOutcome | null> {
+  private runRule(
+    rule: SimilarityRule,
+    context: SimilarityContext,
+  ): Promise<RuleOutcome | null> {
     if (rule.isApplicable) {
       try {
         if (!rule.isApplicable(context)) return Promise.resolve(null);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Applicability check failed for "${rule.name}": ${message}`);
+        this.logger.error(
+          `Applicability check failed for "${rule.name}": ${message}`,
+        );
         return Promise.resolve(null);
       }
     }
     const rawScore = rule.calculate(context);
     const score = Math.max(0, Math.min(1, rawScore));
     if (rawScore !== score)
-      this.logger.warn(`Rule "${rule.name}" returned ${rawScore} — clamped to ${score}`);
+      this.logger.warn(
+        `Rule "${rule.name}" returned ${rawScore} — clamped to ${score}`,
+      );
     return Promise.resolve({
-      name: rule.name, score,
+      name: rule.name,
+      score,
       weight: Math.abs(rule.weight),
       matched: score > this.MATCH_THRESHOLD,
     });
   }
 
-  private aggregate(settled: PromiseSettledResult<RuleOutcome | null>[], candidateId: string): AggregateScore {
-    let totalWeight = 0, weightedSum = 0;
+  private aggregate(
+    settled: PromiseSettledResult<RuleOutcome | null>[],
+    candidateId: string,
+  ): AggregateScore {
+    let totalWeight = 0,
+      weightedSum = 0;
     const matches: Record<string, boolean> = {};
     const failed: string[] = [];
 
     for (const result of settled) {
-      if (result.status === 'rejected') { failed.push('unknown'); continue; }
+      if (result.status === 'rejected') {
+        failed.push('unknown');
+        continue;
+      }
       const outcome = result.value;
       if (!outcome) continue;
       if (outcome.matched) matches[outcome.name] = true;

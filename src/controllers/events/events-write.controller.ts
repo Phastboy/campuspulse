@@ -1,15 +1,32 @@
 import {
-  BadRequestException, Body, Controller, Delete, HttpCode,
-  HttpStatus, NotFoundException, Param, Patch, Post,
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { EventsWriteService } from '@services/events/events-write.service';
 import { UpdateEventDto } from '@dto/update-event.dto';
 import { SubmitEventDto } from '@dto/submit-event.dto';
 import { ConfirmSubmissionDto } from '@dto/confirm-submission.dto';
 import { ApiResponse as AppApiResponse } from '@dto/api-response.dto';
 import {
-  IngestionResult, CreatedResult, LinkedResult, NeedsDecisionResult,
+  IngestionResult,
+  CreatedResult,
+  LinkedResult,
+  NeedsDecisionResult,
 } from '@dto/ingestion-result.dto';
 import { ScoredEvent } from '@dto/similarity.dto';
 import { IngestionOutcome, SimilarityMatch } from '@application/types';
@@ -23,11 +40,19 @@ export class EventsWriteController {
 
   @Post('submit')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Submit a new event', description: 'Returns `created`, `linked`, or `needs_decision`.' })
+  @ApiOperation({
+    summary: 'Submit a new event',
+    description: 'Returns `created`, `linked`, or `needs_decision`.',
+  })
   @ApiBody({ type: SubmitEventDto })
-  @ApiResponse({ status: 200, description: '`created` | `linked` | `needs_decision`' })
+  @ApiResponse({
+    status: 200,
+    description: '`created` | `linked` | `needs_decision`',
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async submit(@Body() data: SubmitEventDto): Promise<AppApiResponse<IngestionResult>> {
+  async submit(
+    @Body() data: SubmitEventDto,
+  ): Promise<AppApiResponse<IngestionResult>> {
     const outcome = await this.eventsWriteService.submit(data);
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
@@ -38,7 +63,9 @@ export class EventsWriteController {
   @ApiBody({ type: ConfirmSubmissionDto })
   @ApiResponse({ status: 200, description: '`created` | `linked`' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async confirm(@Body() data: ConfirmSubmissionDto): Promise<AppApiResponse<IngestionResult>> {
+  async confirm(
+    @Body() data: ConfirmSubmissionDto,
+  ): Promise<AppApiResponse<IngestionResult>> {
     const outcome = await this.eventsWriteService.confirm(data);
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
@@ -46,7 +73,10 @@ export class EventsWriteController {
   // ── Direct mutations ─────────────────────────────────────────────────────
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update an event', description: 'Partial update — only provided fields are changed.' })
+  @ApiOperation({
+    summary: 'Update an event',
+    description: 'Partial update — only provided fields are changed.',
+  })
   @ApiParam({ name: 'id', description: 'Event UUID' })
   @ApiBody({ type: UpdateEventDto })
   @ApiResponse({ status: 200 })
@@ -57,11 +87,15 @@ export class EventsWriteController {
     @Body() updateData: UpdateEventDto,
   ): Promise<AppApiResponse<unknown>> {
     try {
-      return AppApiResponse.ok(await this.eventsWriteService.update(id, updateData));
+      return AppApiResponse.ok(
+        await this.eventsWriteService.update(id, updateData),
+      );
     } catch (error: unknown) {
       if (error instanceof NotFoundException) throw error;
       if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException(error instanceof Error ? error.message : String(error));
+      throw new BadRequestException(
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
@@ -78,12 +112,16 @@ export class EventsWriteController {
 
 function toIngestionResult(outcome: IngestionOutcome): IngestionResult {
   switch (outcome.action) {
-    case 'created':       return Object.assign(new CreatedResult(), outcome);
-    case 'linked':        return Object.assign(new LinkedResult(), outcome);
+    case 'created':
+      return Object.assign(new CreatedResult(), outcome);
+    case 'linked':
+      return Object.assign(new LinkedResult(), outcome);
     case 'needs_decision':
       return Object.assign(new NeedsDecisionResult(), {
         ...outcome,
-        similar: outcome.similar.map((m: SimilarityMatch) => Object.assign(new ScoredEvent(), m)),
+        similar: outcome.similar.map((m: SimilarityMatch) =>
+          Object.assign(new ScoredEvent(), m),
+        ),
       });
   }
 }
