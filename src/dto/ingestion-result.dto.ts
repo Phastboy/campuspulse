@@ -1,5 +1,5 @@
 import { ScoredEvent } from './similarity.dto';
-import { EventSubmission } from '@domain/types';
+import { EventSubmission } from '@application/types';
 
 /**
  * HTTP response shape when the pipeline publishes a new event.

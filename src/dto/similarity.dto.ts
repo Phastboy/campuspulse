@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { type EventSummary } from '@domain/types';
+import { type EventSummary } from '@application/types';
 
 /**
  * HTTP projection of {@link SimilarityMatch} for API responses.
