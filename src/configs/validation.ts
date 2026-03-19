@@ -12,11 +12,9 @@ export const configSchema = z
     // ── Google OAuth ──────────────────────────────────────────────────────
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
-    /** Must match the redirect URI registered in Google Cloud Console. */
     GOOGLE_CALLBACK_URL: z.string().url(),
 
     // ── JWT ───────────────────────────────────────────────────────────────
-    /** Used as the `iss` claim in every token. */
     JWT_ISSUER: z.string().url().default('http://localhost:3000'),
 
     // ── Swagger ───────────────────────────────────────────────────────────
@@ -32,18 +30,13 @@ export const configSchema = z
     SWAGGER_VERSION: z.string().default('1.0'),
     SWAGGER_TAG_NAME: z.string().default('events'),
     SWAGGER_TAG_DESC: z.string().default('Event management endpoints'),
-    SWAGGER_SECURITY_NAME: z.string().optional(),
+    // SWAGGER_SECURITY_NAME removed — addBearerAuth() uses built-in defaults
   })
-  .refine(
-    (d) =>
-      !d.SWAGGER_ENABLED ||
-      (!!d.SWAGGER_USER && !!d.SWAGGER_PASS && !!d.SWAGGER_SECURITY_NAME),
-    {
-      message:
-        'SWAGGER_USER, SWAGGER_PASS, and SWAGGER_SECURITY_NAME are required when SWAGGER_ENABLED is true',
-      path: ['SWAGGER_ENABLED'],
-    },
-  );
+  .refine((d) => !d.SWAGGER_ENABLED || (!!d.SWAGGER_USER && !!d.SWAGGER_PASS), {
+    message:
+      'SWAGGER_USER and SWAGGER_PASS are required when SWAGGER_ENABLED is true',
+    path: ['SWAGGER_ENABLED'],
+  });
 
 export type AppConfig = z.infer<typeof configSchema>;
 

@@ -50,8 +50,7 @@
     "@nestjs/passport": "^10.0.3",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "jose": "^5.9.6",
-    "cookie-parser": "^1.4.7"
+    "jose": "^5.9.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -79,8 +78,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.0",
     "@types/passport": "^1.0.17",
-    "@types/passport-google-oauth20": "^2.0.16",
-    "@types/cookie-parser": "^1.4.8"
+    "@types/passport-google-oauth20": "^2.0.16"
   },
   "jest": {
     "moduleFileExtensions": [
