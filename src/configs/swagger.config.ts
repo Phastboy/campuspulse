@@ -34,10 +34,7 @@ export class SwaggerSetup {
         config.get('SWAGGER_TAG_NAME') as string,
         config.get('SWAGGER_TAG_DESC') as string,
       )
-      .addBearerAuth(
-        { type: 'http', name: 'Authorization', description: 'Enter JWT token' },
-        config.get('SWAGGER_SECURITY_NAME') as string,
-      )
+      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, builder);

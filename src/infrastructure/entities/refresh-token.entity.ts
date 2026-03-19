@@ -1,4 +1,10 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index } from '@mikro-orm/decorators/legacy';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  Index,
+} from '@mikro-orm/decorators/legacy';
 import { User } from './user.entity';
 
 @Entity({ tableName: 'refresh_tokens' })

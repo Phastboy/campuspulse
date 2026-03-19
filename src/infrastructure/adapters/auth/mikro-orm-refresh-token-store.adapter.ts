@@ -17,7 +17,12 @@ export class MikroOrmRefreshTokenStoreAdapter implements IRefreshTokenStore {
 
   async save(userId: string, jti: string, expiresAt: Date): Promise<void> {
     const user = await this.userRepo.findOneOrFail({ id: userId });
-    const token = this.repo.create({ jti, user, expiresAt, createdAt: new Date() });
+    const token = this.repo.create({
+      jti,
+      user,
+      expiresAt,
+      createdAt: new Date(),
+    });
     await this.em.persist(token).flush();
   }
 

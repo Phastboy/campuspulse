@@ -13,7 +13,11 @@ export class MikroOrmUserWriterAdapter implements IUserWriter {
     private readonly em: EntityManager,
   ) {}
 
-  async create(data: { googleId: string; email: string; username: string }): Promise<IUser> {
+  async create(data: {
+    googleId: string;
+    email: string;
+    username: string;
+  }): Promise<IUser> {
     const user = this.repo.create({ ...data, createdAt: new Date() });
     await this.em.persist(user).flush();
     return user;

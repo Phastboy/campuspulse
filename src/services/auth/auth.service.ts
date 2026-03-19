@@ -1,14 +1,26 @@
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SignJWT, jwtVerify, importPKCS8, importSPKI } from 'jose';
 import { randomUUID } from 'crypto';
 import { type IUserReader, USER_READER } from '@ports/auth/user-reader.port';
 import { type IUserWriter, USER_WRITER } from '@ports/auth/user-writer.port';
-import { type IRefreshTokenStore, REFRESH_TOKEN_STORE } from '@ports/auth/refresh-token-store.port';
+import {
+  type IRefreshTokenStore,
+  REFRESH_TOKEN_STORE,
+} from '@ports/auth/refresh-token-store.port';
 import { AccessTokenPayload, RefreshTokenPayload } from '@application/types';
 import { IUser } from '@domain/interfaces';
 import { AppConfig } from '@configs/validation';
-import { loadJwtKeys, JWT_ACCESS_TTL_SECONDS, JWT_REFRESH_TTL_SECONDS } from '@configs/jwt.config';
+import {
+  loadJwtKeys,
+  JWT_ACCESS_TTL_SECONDS,
+  JWT_REFRESH_TTL_SECONDS,
+} from '@configs/jwt.config';
 import { GoogleProfile } from '@infrastructure/auth/google.strategy';
 
 export interface TokenPair {
@@ -26,7 +38,8 @@ export class AuthService {
   constructor(
     @Inject(USER_READER) private readonly userReader: IUserReader,
     @Inject(USER_WRITER) private readonly userWriter: IUserWriter,
-    @Inject(REFRESH_TOKEN_STORE) private readonly tokenStore: IRefreshTokenStore,
+    @Inject(REFRESH_TOKEN_STORE)
+    private readonly tokenStore: IRefreshTokenStore,
     private readonly config: ConfigService<AppConfig>,
   ) {
     const { privateKey, publicKey } = loadJwtKeys();
@@ -88,9 +101,12 @@ export class AuthService {
   async rotate(refreshToken: string): Promise<TokenPair> {
     const payload = await this.verifyRefreshToken(refreshToken);
     const record = await this.tokenStore.findValid(payload.jti);
-    if (!record) throw new UnauthorizedException('Refresh token is invalid or already used');
+    if (!record)
+      throw new UnauthorizedException(
+        'Refresh token is invalid or already used',
+      );
 
-    await this.tokenStore.delete(payload.jti);  // invalidate before issuing new
+    await this.tokenStore.delete(payload.jti); // invalidate before issuing new
 
     const user = await this.userReader.findById(record.userId);
     if (!user) throw new UnauthorizedException('User no longer exists');
@@ -103,7 +119,8 @@ export class AuthService {
     try {
       const key = await importSPKI(this.publicKeyPem, 'ES256');
       const { payload } = await jwtVerify(token, key, {
-        issuer: this.issuer, algorithms: ['ES256'],
+        issuer: this.issuer,
+        algorithms: ['ES256'],
       });
       return { sub: payload.sub as string };
     } catch {
@@ -111,11 +128,14 @@ export class AuthService {
     }
   }
 
-  private async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
+  private async verifyRefreshToken(
+    token: string,
+  ): Promise<RefreshTokenPayload> {
     try {
       const key = await importSPKI(this.publicKeyPem, 'ES256');
       const { payload } = await jwtVerify(token, key, {
-        issuer: this.issuer, algorithms: ['ES256'],
+        issuer: this.issuer,
+        algorithms: ['ES256'],
       });
       return { sub: payload.sub as string, jti: payload.jti as string };
     } catch {

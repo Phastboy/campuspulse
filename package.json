@@ -33,7 +33,6 @@
     "@mikro-orm/migrations": "^7.0.2",
     "@mikro-orm/nestjs": "^7.0.1",
     "@mikro-orm/postgresql": "^7.0.2",
-    "@mikro-orm/reflection": "^7.0.2",
     "@nestjs/common": "^11.1.16",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.16",

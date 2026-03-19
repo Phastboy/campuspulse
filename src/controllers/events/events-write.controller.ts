@@ -31,7 +31,11 @@ import {
   NeedsDecisionResult,
 } from '@dto/ingestion-result.dto';
 import { ScoredEvent } from '@dto/similarity.dto';
-import { IngestionOutcome, SimilarityMatch, type AccessTokenPayload } from '@application/types';
+import {
+  IngestionOutcome,
+  SimilarityMatch,
+  type AccessTokenPayload,
+} from '@application/types';
 import { JwtAuthGuard } from '@infrastructure/http/jwt-auth.guard';
 import { CurrentUser } from '@infrastructure/http/current-user.decorator';
 
@@ -60,7 +64,10 @@ export class EventsWriteController {
     @Body() data: SubmitEventDto,
     @CurrentUser() user: AccessTokenPayload,
   ): Promise<AppApiResponse<IngestionResult>> {
-    const outcome = await this.eventsWriteService.submit(data, user?.sub ?? null);
+    const outcome = await this.eventsWriteService.submit(
+      data,
+      user?.sub ?? null,
+    );
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
 
@@ -76,7 +83,10 @@ export class EventsWriteController {
     @Body() data: ConfirmSubmissionDto,
     @CurrentUser() user: AccessTokenPayload,
   ): Promise<AppApiResponse<IngestionResult>> {
-    const outcome = await this.eventsWriteService.confirm(data, user?.sub ?? null);
+    const outcome = await this.eventsWriteService.confirm(
+      data,
+      user?.sub ?? null,
+    );
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
 

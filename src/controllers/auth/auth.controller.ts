@@ -1,8 +1,20 @@
 import {
-  Controller, Get, Post, Req, Res, UseGuards,
-  HttpCode, HttpStatus, UnauthorizedException,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService } from '@services/auth/auth.service';
 import { JwtAuthGuard } from '@infrastructure/http/jwt-auth.guard';
@@ -23,15 +35,20 @@ const COOKIE_BASE = {
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   // ── Google OAuth ──────────────────────────────────────────────────────────
 
   @Get('google')
   @UseGuards(GoogleOAuthGuard)
   @ApiOperation({ summary: 'Initiate Google OAuth flow' })
-  @ApiResponse({ status: 302, description: 'Redirects to Google consent screen' })
-  googleLogin(): void { /* guard handles redirect */ }
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to Google consent screen',
+  })
+  googleLogin(): void {
+    /* guard handles redirect */
+  }
 
   @Get('google/callback')
   @UseGuards(GoogleOAuthGuard)
@@ -41,7 +58,8 @@ export class AuthController {
     @Req() req: Request & { user: GoogleProfile },
     @Res({ passthrough: true }) res: Response,
   ): Promise<AppApiResponse<{ accessToken: string }>> {
-    const { accessToken, refreshToken } = await this.authService.handleGoogleLogin(req.user);
+    const { accessToken, refreshToken } =
+      await this.authService.handleGoogleLogin(req.user);
     res.cookie(REFRESH_COOKIE, refreshToken, {
       ...COOKIE_BASE,
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -95,7 +113,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Return the decoded access token payload' })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 401 })
-  me(@CurrentUser() user: AccessTokenPayload): AppApiResponse<AccessTokenPayload> {
+  me(
+    @CurrentUser() user: AccessTokenPayload,
+  ): AppApiResponse<AccessTokenPayload> {
     return AppApiResponse.ok(user);
   }
 }
