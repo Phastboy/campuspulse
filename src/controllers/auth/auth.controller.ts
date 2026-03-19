@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Req,
-  Res,
+  Body,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -14,8 +14,10 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { AuthService } from '@services/auth/auth.service';
 import { JwtAuthGuard } from '@infrastructure/http/jwt-auth.guard';
 import { GoogleOAuthGuard } from '@infrastructure/http/google-oauth.guard';
@@ -24,13 +26,11 @@ import { type AccessTokenPayload } from '@application/types';
 import { ApiResponse as AppApiResponse } from '@dto/api-response.dto';
 import { GoogleProfile } from '@infrastructure/auth/google.strategy';
 
-const REFRESH_COOKIE = 'refresh_token';
-const COOKIE_BASE = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  path: '/api/auth',
-};
+export class RefreshTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  refreshToken!: string;
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -56,37 +56,26 @@ export class AuthController {
   @ApiResponse({ status: 200 })
   async googleCallback(
     @Req() req: Request & { user: GoogleProfile },
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<AppApiResponse<{ accessToken: string }>> {
-    const { accessToken, refreshToken } =
-      await this.authService.handleGoogleLogin(req.user);
-    res.cookie(REFRESH_COOKIE, refreshToken, {
-      ...COOKIE_BASE,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    return AppApiResponse.ok({ accessToken });
+  ): Promise<AppApiResponse<{ accessToken: string; refreshToken: string }>> {
+    const tokens = await this.authService.handleGoogleLogin(req.user);
+    return AppApiResponse.ok(tokens);
   }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Rotate refresh token and issue new access token' })
+  @ApiOperation({ summary: 'Rotate refresh token and issue new token pair' })
+  @ApiBody({ type: RefreshTokenDto })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 401 })
   async refresh(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<AppApiResponse<{ accessToken: string }>> {
-    const token = (req.cookies as Record<string, string>)?.[REFRESH_COOKIE];
-    if (!token) throw new UnauthorizedException('No refresh token provided');
-
-    const { accessToken, refreshToken } = await this.authService.rotate(token);
-    res.cookie(REFRESH_COOKIE, refreshToken, {
-      ...COOKIE_BASE,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    return AppApiResponse.ok({ accessToken });
+    @Body() body: RefreshTokenDto,
+  ): Promise<AppApiResponse<{ accessToken: string; refreshToken: string }>> {
+    if (!body.refreshToken)
+      throw new UnauthorizedException('No refresh token provided');
+    const tokens = await this.authService.rotate(body.refreshToken);
+    return AppApiResponse.ok(tokens);
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────
@@ -97,12 +86,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke all refresh tokens for the current user' })
   @ApiResponse({ status: 204 })
-  async logout(
-    @CurrentUser() user: AccessTokenPayload,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<void> {
+  async logout(@CurrentUser() user: AccessTokenPayload): Promise<void> {
     await this.authService.logout(user.sub);
-    res.clearCookie(REFRESH_COOKIE, COOKIE_BASE);
   }
 
   // ── Introspection ─────────────────────────────────────────────────────────
