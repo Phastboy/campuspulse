@@ -52,14 +52,19 @@ export class AuthService {
 
   async handleGoogleLogin(profile: GoogleProfile): Promise<TokenPair> {
     let user = await this.userReader.findByGoogleId(profile.googleId);
+
     if (!user) {
       this.logger.log(`New user via Google: ${profile.email}`);
-      user = await this.userWriter.create({
+      // Upsert: the adapter issues INSERT ... ON CONFLICT DO NOTHING and
+      // re-fetches if the row already existed (race-safe under the UNIQUE
+      // constraint on google_id).
+      user = await this.userWriter.upsert({
         googleId: profile.googleId,
         email: profile.email,
         username: profile.displayName,
       });
     }
+
     return this.issueTokenPair(user);
   }
 
@@ -106,7 +111,7 @@ export class AuthService {
         'Refresh token is invalid or already used',
       );
 
-    await this.tokenStore.delete(payload.jti); // invalidate before issuing new
+    await this.tokenStore.delete(payload.jti);
 
     const user = await this.userReader.findById(record.userId);
     if (!user) throw new UnauthorizedException('User no longer exists');

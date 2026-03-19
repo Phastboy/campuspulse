@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as os from 'os';
-import cookieParser from 'cookie-parser';
 
 import { AppModule } from '@modules/app.module';
 import { AllExceptionsFilter } from '@infrastructure/http/all-exceptions.filter';
@@ -22,7 +21,6 @@ async function bootstrap(): Promise<void> {
   const configService = app.get(ConfigService<AppConfig>);
 
   app.setGlobalPrefix(configService.get('GLOBAL_PREFIX') as string);
-  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -35,7 +33,7 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalFilters(new AllExceptionsFilter());
   SwaggerSetup.register(app);
-  app.enableCors({ credentials: true });
+  app.enableCors();
 
   const port = configService.get('PORT') as number;
   await app.listen(port);

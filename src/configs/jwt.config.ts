@@ -19,8 +19,8 @@ export function loadJwtKeys(): { privateKey: string; publicKey: string } {
   } catch (err) {
     throw new Error(
       `JWT key files not found. Run \`pnpm keys:generate\`.\n` +
-        `Expected: keys/private.pem and keys/public.pem\n` +
-        `Cause: ${err instanceof Error ? err.message : String(err)}`,
+        `Expected: keys/private.pem and keys/public.pem`,
+      { cause: err },
     );
   }
 }
