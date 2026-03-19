@@ -19,17 +19,22 @@ export interface GoogleProfile {
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService<AppConfig>) {
     super({
-      clientID:     config.get('GOOGLE_CLIENT_ID')     as string,
+      clientID: config.get('GOOGLE_CLIENT_ID') as string,
       clientSecret: config.get('GOOGLE_CLIENT_SECRET') as string,
-      callbackURL:  config.get('GOOGLE_CALLBACK_URL')  as string,
+      callbackURL: config.get('GOOGLE_CALLBACK_URL') as string,
       scope: ['profile', 'email'],
     });
   }
 
-  validate(_at: string, _rt: string, profile: Profile, done: VerifyCallback): void {
+  validate(
+    _at: string,
+    _rt: string,
+    profile: Profile,
+    done: VerifyCallback,
+  ): void {
     done(null, {
-      googleId:    profile.id,
-      email:       profile.emails?.[0]?.value ?? '',
+      googleId: profile.id,
+      email: profile.emails?.[0]?.value ?? '',
       displayName: profile.displayName,
     } satisfies GoogleProfile);
   }

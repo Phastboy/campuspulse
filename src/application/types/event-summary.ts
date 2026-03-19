@@ -10,4 +10,7 @@ import { IEvent } from '@domain/interfaces';
  * ⚠️ When originating from a JSONB query, `Date` fields inside `datetime`
  * may arrive as ISO strings. Use {@link getComparableDateFromSummary}.
  */
-export type EventSummary = Omit<IEvent, 'description' | 'createdBy' | 'createdAt'>;
+export type EventSummary = Omit<
+  IEvent,
+  'description' | 'createdBy' | 'createdAt'
+>;

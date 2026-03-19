@@ -55,7 +55,10 @@ export class EventsWriteService {
 
   // ── Ingestion (write path with duplicate detection) ──────────────────────
 
-  async submit(data: SubmitEventDto, createdBy: string | null = null): Promise<IngestionOutcome> {
+  async submit(
+    data: SubmitEventDto,
+    createdBy: string | null = null,
+  ): Promise<IngestionOutcome> {
     const submission = this.datetimeMapper.toEventSubmission(data);
     const similar = await this.similarityEngine.findSimilar(submission);
     const exactMatch = similar.find((s) => s.score === 1.0);
@@ -68,7 +71,10 @@ export class EventsWriteService {
     return needsDecision(similar, submission);
   }
 
-  async confirm(data: ConfirmSubmissionDto, createdBy: string | null = null): Promise<IngestionOutcome> {
+  async confirm(
+    data: ConfirmSubmissionDto,
+    createdBy: string | null = null,
+  ): Promise<IngestionOutcome> {
     if (data.decision === 'duplicate' && data.existingEventId)
       return linked(data.existingEventId, 'Linked to existing event');
 

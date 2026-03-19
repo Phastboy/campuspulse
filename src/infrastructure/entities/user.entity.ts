@@ -1,4 +1,9 @@
-import { Entity, PrimaryKey, Property, Index } from '@mikro-orm/decorators/legacy';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  Index,
+} from '@mikro-orm/decorators/legacy';
 import { IUser } from '@domain/interfaces';
 
 @Entity({ tableName: 'users' })
