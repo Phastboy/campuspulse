@@ -14,12 +14,15 @@ graph TD
   %% NestJS module imports — framework modules omitted for clarity
 
   AppModule([AppModule])
+  AuthModule[AuthModule]
   EventsModule[EventsModule]
 
+  AuthModule -->|imports| PassportModule
 
   classDef root    fill:#1a1a2e,stroke:#e94560,color:#fff,font-weight:bold
   classDef feature fill:#16213e,stroke:#0f3460,color:#e0e0e0
   class AppModule root
+  class AuthModule feature
   class EventsModule feature
 ```
 
@@ -36,18 +39,26 @@ graph LR
   %% Solid arrow → direct dependency    Dashed arrow -.-> via port token
 
   subgraph controllers ["controllers"]
+    RefreshTokenDto["RefreshTokenDto"]
     EventsReadController["EventsReadController"]
     EventsWriteController["EventsWriteController"]
   end
 
   subgraph infrastructure ["infrastructure"]
+    MikroOrmRefreshTokenStoreAdapter["MikroOrmRefreshTokenStoreAdapter"]
+    MikroOrmUserReaderAdapter["MikroOrmUserReaderAdapter"]
+    MikroOrmUserWriterAdapter["MikroOrmUserWriterAdapter"]
     MikroOrmEventCandidateReaderAdapter["MikroOrmEventCandidateReaderAdapter"]
     MikroOrmEventReaderAdapter["MikroOrmEventReaderAdapter"]
     MikroOrmEventWriterAdapter["MikroOrmEventWriterAdapter"]
     MikroOrmTransactionManagerAdapter["MikroOrmTransactionManagerAdapter"]
+    GoogleStrategy["GoogleStrategy"]
+    GoogleOAuthGuard["GoogleOAuthGuard"]
+    JwtAuthGuard["JwtAuthGuard"]
   end
 
   subgraph services ["services"]
+    AuthService["AuthService"]
     EventsReadService["EventsReadService"]
     EventsWriteService["EventsWriteService"]
     DateProximityRule["DateProximityRule"]
@@ -57,26 +68,37 @@ graph LR
     SimilarityEngine["SimilarityEngine"]
   end
 
+  RefreshTokenDto --> AuthService
   EventsReadController --> EventsReadService
   EventsWriteController --> EventsWriteService
+  JwtAuthGuard --> AuthService
   EventsWriteService --> EventDateTimeAssembler
   EventsWriteService --> EventDateTimeMapper
   SimilarityEngine --> RuleEvaluator
 
   subgraph ports_sg ["port interfaces"]
     IEvent(["«if» IEvent"])
+    IUser(["«if» IUser"])
   end
 
   classDef ctrl  fill:#0f3460,stroke:#e94560,color:#fff
   classDef svc   fill:#16213e,stroke:#533483,color:#e0e0e0
   classDef infra fill:#1a1a2e,stroke:#2196f3,color:#b0bec5
   classDef port  fill:none,stroke:#78909c,color:#90a4ae,stroke-dasharray:5 5
+  class RefreshTokenDto ctrl
   class EventsReadController ctrl
   class EventsWriteController ctrl
+  class MikroOrmRefreshTokenStoreAdapter svc
+  class MikroOrmUserReaderAdapter svc
+  class MikroOrmUserWriterAdapter svc
   class MikroOrmEventCandidateReaderAdapter svc
   class MikroOrmEventReaderAdapter svc
   class MikroOrmEventWriterAdapter svc
   class MikroOrmTransactionManagerAdapter svc
+  class GoogleStrategy svc
+  class GoogleOAuthGuard svc
+  class JwtAuthGuard svc
+  class AuthService svc
   class EventsReadService svc
   class EventsWriteService svc
   class DateProximityRule svc
@@ -85,6 +107,7 @@ graph LR
   class VenueSimilarityRule svc
   class SimilarityEngine svc
   class IEvent port
+  class IUser port
 ```
 
 ---
@@ -100,11 +123,13 @@ graph TB
 
   subgraph http ["HTTP Layer · Controllers · DTOs · Filters"]
     AllExceptionsFilter["AllExceptionsFilter"]
+    RefreshTokenDto["RefreshTokenDto"]
     EventsReadController["EventsReadController"]
     EventsWriteController["EventsWriteController"]
   end
 
   subgraph application ["Application Layer · Services · Mappers · Rules"]
+    AuthService["AuthService"]
     EventsReadService["EventsReadService"]
     EventsWriteService["EventsWriteService"]
     TextSimilarityRule["TextSimilarityRule"]
@@ -117,6 +142,7 @@ graph TB
 
   subgraph port ["Port Layer · Interfaces · Tokens"]
     IEvent(["«if» IEvent"])
+    IUser(["«if» IUser"])
   end
 
   http          --> application
@@ -130,8 +156,10 @@ graph TB
   classDef domain fill:#e65100,stroke:#ef6c00,color:#fff3e0
   classDef infra  fill:#37474f,stroke:#455a64,color:#eceff1
   class AllExceptionsFilter http
+  class RefreshTokenDto http
   class EventsReadController http
   class EventsWriteController http
+  class AuthService app
   class EventsReadService app
   class EventsWriteService app
   class TextSimilarityRule app
@@ -141,6 +169,7 @@ graph TB
   class VenueSimilarityRule app
   class SimilarityEngine app
   class IEvent port
+  class IUser port
 ```
 
 ---
@@ -150,6 +179,7 @@ graph TB
 | Port Interface | Injection Token | Implementation | Module |
 |---------------|----------------|---------------|--------|
 | `IEvent` | `—` | `Event` | `infrastructure` |
+| `IUser` | `—` | `User` | `infrastructure` |
 
 ---
 
@@ -165,4 +195,4 @@ graph TB
 
 ---
 
-_Generated: 2026-03-18T10:58:28.262Z_
+_Generated: 2026-03-19T04:36:57.154Z_
