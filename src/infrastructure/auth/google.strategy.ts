@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback, Profile } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
@@ -10,11 +10,6 @@ export interface GoogleProfile {
   displayName: string;
 }
 
-/**
- * Passport strategy for Google OAuth 2.0 Authorization Code flow.
- * On callback, distils the Google profile down to only the fields
- * CampusPulse needs and places them on `request.user`.
- */
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService<AppConfig>) {
@@ -32,9 +27,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: Profile,
     done: VerifyCallback,
   ): void {
+    const email = profile.emails?.[0]?.value;
+    if (!email) {
+      done(
+        new UnauthorizedException(
+          'Google account did not provide an email address. ' +
+            'Ensure your Google account has a verified email and the email scope is granted.',
+        ),
+      );
+      return;
+    }
+
     done(null, {
       googleId: profile.id,
-      email: profile.emails?.[0]?.value ?? '',
+      email,
       displayName: profile.displayName,
     } satisfies GoogleProfile);
   }

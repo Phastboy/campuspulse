@@ -36,8 +36,10 @@ export class MikroOrmRefreshTokenStoreAdapter implements IRefreshTokenStore {
   }
 
   async delete(jti: string): Promise<void> {
-    const token = await this.repo.findOne({ jti });
-    if (token) await this.em.remove(token).flush();
+    // nativeDelete removes all rows with this jti — enforces the invariant
+    // that jti uniquely identifies one token, even if duplicates somehow
+    // exist (belt-and-suspenders alongside the UNIQUE constraint).
+    await this.repo.nativeDelete({ jti });
   }
 
   async deleteAllForUser(userId: string): Promise<void> {
