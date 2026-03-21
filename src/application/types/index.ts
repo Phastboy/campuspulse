@@ -5,4 +5,3 @@ export * from './paginated-events';
 export * from './similarity-match';
 export * from './ingestion-outcome';
 export * from './event-changes';
-export * from './token-payload';
