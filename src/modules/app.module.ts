@@ -11,6 +11,24 @@ import { MikroOrmRefreshTokenRepository } from '@infrastructure/adapters/auth/mi
 import { User } from '@infrastructure/entities/user.entity';
 import { RefreshToken } from '@infrastructure/entities/refresh-token.entity';
 import { AuthController } from '@controllers';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+/**
+ * Loads a JWT key: env var takes precedence; falls back to reading the
+ * PEM file from `keys/` for local development.
+ *
+ * Throws a clear startup error if neither source is available.
+ */
+function loadJwtKey(envValue: string | undefined, filename: string): string {
+  if (envValue) return envValue;
+  const filePath = resolve(process.cwd(), 'keys', filename);
+  if (existsSync(filePath)) return readFileSync(filePath, 'utf8');
+  throw new Error(
+    `JWT key not found. Set ${filename === 'private.pem' ? 'JWT_PRIVATE_KEY' : 'JWT_PUBLIC_KEY'} ` +
+      `env var, or run \`pnpm keys:generate\` to create keys/${filename}.`,
+  );
+}
 
 @Module({
   imports: [
@@ -26,8 +44,8 @@ import { AuthController } from '@controllers';
       useFactory: (cfg: ConfigService<AppConfig>) => ({
         jwt: {
           type: 'asymmetric' as const,
-          privateKey: cfg.get('JWT_PRIVATE_KEY') as string,
-          publicKey: cfg.get('JWT_PUBLIC_KEY') as string,
+          privateKey: loadJwtKey(cfg.get('JWT_PRIVATE_KEY'), 'private.pem'),
+          publicKey: loadJwtKey(cfg.get('JWT_PUBLIC_KEY'), 'public.pem'),
           accessToken: { expiresIn: '15m', algorithm: 'ES256' },
           refreshToken: { expiresIn: '7d' },
         },
