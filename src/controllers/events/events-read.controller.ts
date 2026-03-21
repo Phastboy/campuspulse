@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Public } from '@odysseon/auth';
 import {
   ApiOperation,
   ApiParam,
@@ -11,6 +12,7 @@ import { EventQueryDto } from '@dto/event-query.dto';
 import { ApiResponse as AppApiResponse } from '@dto/api-response.dto';
 import { DATETIME_TYPES } from '@domain/value-objects';
 
+@Public()
 @ApiTags('events')
 @Controller('events')
 export class EventsReadController {
