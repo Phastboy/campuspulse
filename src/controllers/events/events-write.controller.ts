@@ -9,7 +9,6 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -31,13 +30,8 @@ import {
   NeedsDecisionResult,
 } from '@dto/ingestion-result.dto';
 import { ScoredEvent } from '@dto/similarity.dto';
-import {
-  IngestionOutcome,
-  SimilarityMatch,
-  type AccessTokenPayload,
-} from '@application/types';
-import { JwtAuthGuard } from '@infrastructure/http/jwt-auth.guard';
-import { CurrentUser } from '@infrastructure/http/current-user.decorator';
+import { IngestionOutcome, SimilarityMatch } from '@application/types';
+import { CurrentUser, type RequestUser } from '@odysseon/auth';
 
 @ApiTags('events')
 @Controller('events')
@@ -58,15 +52,14 @@ export class EventsWriteController {
     description: '`created` | `linked` | `needs_decision`',
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async submit(
     @Body() data: SubmitEventDto,
-    @CurrentUser() user: AccessTokenPayload,
+    @CurrentUser() user: RequestUser,
   ): Promise<AppApiResponse<IngestionResult>> {
     const outcome = await this.eventsWriteService.submit(
       data,
-      user?.sub ?? null,
+      user?.userId ?? null,
     );
     return AppApiResponse.ok(toIngestionResult(outcome));
   }
@@ -77,15 +70,14 @@ export class EventsWriteController {
   @ApiBody({ type: ConfirmSubmissionDto })
   @ApiResponse({ status: 200, description: '`created` | `linked`' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async confirm(
     @Body() data: ConfirmSubmissionDto,
-    @CurrentUser() user: AccessTokenPayload,
+    @CurrentUser() user: RequestUser,
   ): Promise<AppApiResponse<IngestionResult>> {
     const outcome = await this.eventsWriteService.confirm(
       data,
-      user?.sub ?? null,
+      user?.userId ?? null,
     );
     return AppApiResponse.ok(toIngestionResult(outcome));
   }

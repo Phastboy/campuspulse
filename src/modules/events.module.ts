@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from './auth.module';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Event } from '@infrastructure/entities/event.entity';
 
@@ -42,7 +41,7 @@ import { SIMILARITY_ENGINE } from '@services/events/similarity/similarity-engine
  * | SIMILARITY_ENGINE      | SimilarityEngine                     |
  */
 @Module({
-  imports: [MikroOrmModule.forFeature([Event]), AuthModule],
+  imports: [MikroOrmModule.forFeature([Event])],
   controllers: [EventsReadController, EventsWriteController],
   providers: [
     // Services
