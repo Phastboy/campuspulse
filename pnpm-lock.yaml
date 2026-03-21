@@ -42,8 +42,8 @@ importers:
         specifier: ^11.2.6
         version: 11.2.6(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)
       '@odysseon/auth':
-        specifier: ^2.0.0
-        version: 2.0.0(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/passport@10.0.3(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(passport@0.7.0))(passport-jwt@4.0.1)(passport@0.7.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        specifier: ^4.0.0
+        version: 4.0.0(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/passport@10.0.3(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(passport@0.7.0))(passport-jwt@4.0.1)(passport@0.7.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@swc-node/register':
         specifier: ^1.11.1
         version: 1.11.1(@swc/core@1.15.18)(@swc/types@0.1.25)(typescript@5.9.3)
@@ -882,9 +882,9 @@ packages:
     engines: {node: ^14.18.0 || >=16.10.0, npm: '>=5.10.0'}
     hasBin: true
 
-  '@odysseon/auth@2.0.0':
-    resolution: {integrity: sha512-fHVA+forxlZdbV7PG/T+cKU5nVk2cs43A/+U47NUs8i1jF7NMSliXBZ+jvTWKOK+EdDLitTN3hTtQq4pEzdeOQ==}
-    engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
+  '@odysseon/auth@4.0.0':
+    resolution: {integrity: sha512-Ff9QQvJL8EOfp6YwNmnQSHKmPrIn8yink6a6NBZr/+Sxtg5s+UbL6BpCmTjENYpcR002//LpoxcZnvk3qwgjtA==}
+    engines: {node: '>=22.0.0', pnpm: '>=9.0.0'}
     peerDependencies:
       '@nestjs/common': ^10.0.0 || ^11.0.0
       '@nestjs/core': ^10.0.0 || ^11.0.0
@@ -4481,7 +4481,7 @@ snapshots:
     dependencies:
       consola: 3.4.2
 
-  '@odysseon/auth@2.0.0(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/passport@10.0.3(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(passport@0.7.0))(passport-jwt@4.0.1)(passport@0.7.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@odysseon/auth@4.0.0(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/passport@10.0.3(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(passport@0.7.0))(passport-jwt@4.0.1)(passport@0.7.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.16(@nestjs/common@11.1.16(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)

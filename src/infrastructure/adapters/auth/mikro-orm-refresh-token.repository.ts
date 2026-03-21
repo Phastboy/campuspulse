@@ -25,7 +25,7 @@ export class MikroOrmRefreshTokenRepository implements IRefreshTokenRepository<R
     @InjectRepository(User)
     private readonly userRepo: EntityRepository<User>,
     private readonly em: EntityManager,
-  ) {}
+  ) { }
 
   async create(data: Omit<RefreshToken, 'id'>): Promise<RefreshToken> {
     const user = await this.userRepo.findOneOrFail({ id: data.userId });
@@ -40,13 +40,6 @@ export class MikroOrmRefreshTokenRepository implements IRefreshTokenRepository<R
     return record;
   }
 
-  findByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
-    return this.repo.findOne({
-      token: tokenHash,
-      expiresAt: { $gt: new Date() },
-    });
-  }
-
   /**
    * Atomically consumes a refresh token.
    *
@@ -56,19 +49,27 @@ export class MikroOrmRefreshTokenRepository implements IRefreshTokenRepository<R
    * receive zero rows and return null, preventing refresh-token replay.
    */
   async consumeByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
-    const conn = this.em.getConnection();
-    const rows = await conn.execute<RefreshToken[]>(
-      `DELETE FROM refresh_tokens
-       WHERE token = ? AND expires_at > now()
-       RETURNING id, token, user_id AS "userId", expires_at AS "expiresAt", created_at AS "createdAt"`,
-      [tokenHash],
-      'run',
-    );
-    return rows[0] ?? null;
-  }
+    if (!tokenHash) {
+      console.error('No tokenHash provided');
+      return null;
+    }
 
-  async deleteById(id: string): Promise<void> {
-    await this.repo.nativeDelete({ id });
+    let result: RefreshToken | null = null;
+
+    await this.em.transactional(async (em) => {
+      // Find and delete atomically
+      const refreshToken = await em.findOne(RefreshToken, {
+        token: tokenHash,
+        expiresAt: { $gt: new Date() }
+      });
+
+      if (refreshToken) {
+        await em.remove(refreshToken).flush();
+        result = refreshToken;
+      }
+    });
+
+    return result;
   }
 
   async deleteAllForUser(userId: string): Promise<void> {

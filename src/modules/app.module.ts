@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
@@ -26,7 +26,7 @@ function loadJwtKey(envValue: string | undefined, filename: string): string {
   if (existsSync(filePath)) return readFileSync(filePath, 'utf8');
   throw new Error(
     `JWT key not found. Set ${filename === 'private.pem' ? 'JWT_PRIVATE_KEY' : 'JWT_PUBLIC_KEY'} ` +
-      `env var, or run \`pnpm keys:generate\` to create keys/${filename}.`,
+    `env var, or run \`pnpm keys:generate\` to create keys/${filename}.`,
   );
 }
 
@@ -57,6 +57,7 @@ function loadJwtKey(envValue: string | undefined, filename: string): string {
       }),
       userRepository: MikroOrmUserRepository,
       refreshTokenRepository: MikroOrmRefreshTokenRepository,
+      logger: Logger,
       enabledCapabilities: ['google'],
     }),
     EventsModule,
@@ -67,4 +68,4 @@ function loadJwtKey(envValue: string | undefined, filename: string): string {
   ],
   controllers: [AuthController],
 })
-export class AppModule {}
+export class AppModule { }
