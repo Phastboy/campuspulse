@@ -14,8 +14,11 @@ export const configSchema = z
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     GOOGLE_CALLBACK_URL: z.string().url(),
 
-    // ── JWT ───────────────────────────────────────────────────────────────
-    JWT_ISSUER: z.string().url().default('http://localhost:3000'),
+    // ── JWT (asymmetric ES256) ────────────────────────────────────────────
+    // On Render: add key files under /etc/secrets/ and set these vars to
+    // the full PEM content (including header/footer lines).
+    JWT_PRIVATE_KEY: z.string().min(1),
+    JWT_PUBLIC_KEY: z.string().min(1),
 
     // ── Swagger ───────────────────────────────────────────────────────────
     SWAGGER_ENABLED: z.coerce.boolean().default(false),

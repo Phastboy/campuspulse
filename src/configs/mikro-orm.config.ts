@@ -22,6 +22,8 @@ export default defineConfig({
     pathTs: './src/database/migrations',
     glob: '!(*.d).{js,ts}',
     transactional: true,
+    dropTables: false,
+    safe: true,
   },
   debug: process.env.NODE_ENV === 'development',
 });
