@@ -1,3 +1,2 @@
-export * from './user-reader.port';
-export * from './user-writer.port';
-export * from './refresh-token-store.port';
+// Auth ports are provided by @odysseon/auth.
+// Import directly: import type { IGoogleUserRepository, IRefreshTokenRepository } from '@odysseon/auth';
