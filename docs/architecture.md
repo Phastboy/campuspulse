@@ -14,15 +14,12 @@ graph TD
   %% NestJS module imports — framework modules omitted for clarity
 
   AppModule([AppModule])
-  AuthModule[AuthModule]
   EventsModule[EventsModule]
 
-  AuthModule -->|imports| PassportModule
 
   classDef root    fill:#1a1a2e,stroke:#e94560,color:#fff,font-weight:bold
   classDef feature fill:#16213e,stroke:#0f3460,color:#e0e0e0
   class AppModule root
-  class AuthModule feature
   class EventsModule feature
 ```
 
@@ -45,20 +42,15 @@ graph LR
   end
 
   subgraph infrastructure ["infrastructure"]
-    MikroOrmRefreshTokenStoreAdapter["MikroOrmRefreshTokenStoreAdapter"]
-    MikroOrmUserReaderAdapter["MikroOrmUserReaderAdapter"]
-    MikroOrmUserWriterAdapter["MikroOrmUserWriterAdapter"]
+    MikroOrmRefreshTokenRepository["MikroOrmRefreshTokenRepository"]
+    MikroOrmUserRepository["MikroOrmUserRepository"]
     MikroOrmEventCandidateReaderAdapter["MikroOrmEventCandidateReaderAdapter"]
     MikroOrmEventReaderAdapter["MikroOrmEventReaderAdapter"]
     MikroOrmEventWriterAdapter["MikroOrmEventWriterAdapter"]
     MikroOrmTransactionManagerAdapter["MikroOrmTransactionManagerAdapter"]
-    GoogleStrategy["GoogleStrategy"]
-    GoogleOAuthGuard["GoogleOAuthGuard"]
-    JwtAuthGuard["JwtAuthGuard"]
   end
 
   subgraph services ["services"]
-    AuthService["AuthService"]
     EventsReadService["EventsReadService"]
     EventsWriteService["EventsWriteService"]
     DateProximityRule["DateProximityRule"]
@@ -68,17 +60,14 @@ graph LR
     SimilarityEngine["SimilarityEngine"]
   end
 
-  RefreshTokenDto --> AuthService
   EventsReadController --> EventsReadService
   EventsWriteController --> EventsWriteService
-  JwtAuthGuard --> AuthService
   EventsWriteService --> EventDateTimeAssembler
   EventsWriteService --> EventDateTimeMapper
   SimilarityEngine --> RuleEvaluator
 
   subgraph ports_sg ["port interfaces"]
     IEvent(["«if» IEvent"])
-    IUser(["«if» IUser"])
   end
 
   classDef ctrl  fill:#0f3460,stroke:#e94560,color:#fff
@@ -88,17 +77,12 @@ graph LR
   class RefreshTokenDto ctrl
   class EventsReadController ctrl
   class EventsWriteController ctrl
-  class MikroOrmRefreshTokenStoreAdapter svc
-  class MikroOrmUserReaderAdapter svc
-  class MikroOrmUserWriterAdapter svc
+  class MikroOrmRefreshTokenRepository svc
+  class MikroOrmUserRepository svc
   class MikroOrmEventCandidateReaderAdapter svc
   class MikroOrmEventReaderAdapter svc
   class MikroOrmEventWriterAdapter svc
   class MikroOrmTransactionManagerAdapter svc
-  class GoogleStrategy svc
-  class GoogleOAuthGuard svc
-  class JwtAuthGuard svc
-  class AuthService svc
   class EventsReadService svc
   class EventsWriteService svc
   class DateProximityRule svc
@@ -107,7 +91,6 @@ graph LR
   class VenueSimilarityRule svc
   class SimilarityEngine svc
   class IEvent port
-  class IUser port
 ```
 
 ---
@@ -129,7 +112,6 @@ graph TB
   end
 
   subgraph application ["Application Layer · Services · Mappers · Rules"]
-    AuthService["AuthService"]
     EventsReadService["EventsReadService"]
     EventsWriteService["EventsWriteService"]
     TextSimilarityRule["TextSimilarityRule"]
@@ -142,7 +124,6 @@ graph TB
 
   subgraph port ["Port Layer · Interfaces · Tokens"]
     IEvent(["«if» IEvent"])
-    IUser(["«if» IUser"])
   end
 
   http          --> application
@@ -159,7 +140,6 @@ graph TB
   class RefreshTokenDto http
   class EventsReadController http
   class EventsWriteController http
-  class AuthService app
   class EventsReadService app
   class EventsWriteService app
   class TextSimilarityRule app
@@ -169,7 +149,6 @@ graph TB
   class VenueSimilarityRule app
   class SimilarityEngine app
   class IEvent port
-  class IUser port
 ```
 
 ---
@@ -179,7 +158,6 @@ graph TB
 | Port Interface | Injection Token | Implementation | Module |
 |---------------|----------------|---------------|--------|
 | `IEvent` | `—` | `Event` | `infrastructure` |
-| `IUser` | `—` | `User` | `infrastructure` |
 
 ---
 
@@ -195,4 +173,4 @@ graph TB
 
 ---
 
-_Generated: 2026-03-19T04:36:57.154Z_
+_Generated: 2026-03-21T07:21:34.299Z_
