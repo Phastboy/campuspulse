@@ -1,7 +1,7 @@
 import { Migration } from '@mikro-orm/migrations';
 
 export class Migration20260321065231 extends Migration {
-  override async up(): Promise<void> {
+  override up(): Promise<void> {
     this.addSql(
       `create table "events" ("id" uuid not null default uuid_generate_v4(), "title" varchar(255) not null, "datetime" jsonb not null, "venue" varchar(255) not null, "description" varchar(255) null, "created_by" uuid null, "created_at" timestamptz not null, primary key ("id"));`,
     );
@@ -20,9 +20,11 @@ export class Migration20260321065231 extends Migration {
     this.addSql(
       `create index "refresh_tokens_token_index" on "refresh_tokens" ("token");`,
     );
+
+    return Promise.resolve();
   }
 
-  override async down(): Promise<void> {
+  override down(): Promise<void> {
     this.addSql(`create schema if not exists "auth";`);
     this.addSql(`create schema if not exists "storage";`);
     this.addSql(`create schema if not exists "realtime";`);
@@ -418,19 +420,19 @@ export class Migration20260321065231 extends Migration {
       `comment on column "auth"."users"."is_sso_user" is 'Auth: Set this column to true when the account comes from SSO. These accounts can have duplicate emails.';`,
     );
     this.addSql(
-      `CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*\$'::text);`,
+      `CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text);`,
     );
     this.addSql(
-      `CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*\$'::text);`,
+      `CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*$'::text);`,
     );
     this.addSql(
-      `CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*\$'::text);`,
+      `CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*$'::text);`,
     );
     this.addSql(
-      `CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*\$'::text);`,
+      `CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*$'::text);`,
     );
     this.addSql(
-      `CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*\$'::text);`,
+      `CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*$'::text);`,
     );
     this.addSql(
       `CREATE UNIQUE INDEX users_email_partial_key ON auth.users USING btree (email) WHERE (is_sso_user = false);`,
@@ -617,5 +619,7 @@ export class Migration20260321065231 extends Migration {
     stats_since,
     minmax_stats_since
    FROM pg_stat_statements(true) pg_stat_statements(userid, dbid, toplevel, queryid, query, plans, total_plan_time, min_plan_time, max_plan_time, mean_plan_time, stddev_plan_time, calls, total_exec_time, min_exec_time, max_exec_time, mean_exec_time, stddev_exec_time, rows, shared_blks_hit, shared_blks_read, shared_blks_dirtied, shared_blks_written, local_blks_hit, local_blks_read, local_blks_dirtied, local_blks_written, temp_blks_read, temp_blks_written, shared_blk_read_time, shared_blk_write_time, local_blk_read_time, local_blk_write_time, temp_blk_read_time, temp_blk_write_time, wal_records, wal_fpi, wal_bytes, jit_functions, jit_generation_time, jit_inlining_count, jit_inlining_time, jit_optimization_count, jit_optimization_time, jit_emission_count, jit_emission_time, jit_deform_count, jit_deform_time, stats_since, minmax_stats_since);`);
+
+    return Promise.resolve();
   }
 }
