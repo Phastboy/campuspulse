@@ -26,7 +26,7 @@ function loadJwtKey(envValue: string | undefined, filename: string): string {
   if (existsSync(filePath)) return readFileSync(filePath, 'utf8');
   throw new Error(
     `JWT key not found. Set ${filename === 'private.pem' ? 'JWT_PRIVATE_KEY' : 'JWT_PUBLIC_KEY'} ` +
-    `env var, or run \`pnpm keys:generate\` to create keys/${filename}.`,
+      `env var, or run \`pnpm keys:generate\` to create keys/${filename}.`,
   );
 }
 
@@ -68,4 +68,4 @@ function loadJwtKey(envValue: string | undefined, filename: string): string {
   ],
   controllers: [AuthController],
 })
-export class AppModule { }
+export class AppModule {}

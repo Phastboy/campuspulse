@@ -25,7 +25,7 @@ export class MikroOrmRefreshTokenRepository implements IRefreshTokenRepository<R
     @InjectRepository(User)
     private readonly userRepo: EntityRepository<User>,
     private readonly em: EntityManager,
-  ) { }
+  ) {}
 
   async create(data: Omit<RefreshToken, 'id'>): Promise<RefreshToken> {
     const user = await this.userRepo.findOneOrFail({ id: data.userId });
@@ -60,7 +60,7 @@ export class MikroOrmRefreshTokenRepository implements IRefreshTokenRepository<R
       // Find and delete atomically
       const refreshToken = await em.findOne(RefreshToken, {
         token: tokenHash,
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       });
 
       if (refreshToken) {
