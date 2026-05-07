@@ -4,7 +4,7 @@ FROM node:25-alpine AS base
 RUN npm install -g pnpm@latest
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY prisma/ ./prisma/
@@ -43,7 +43,7 @@ RUN addgroup --system --gid 1001 nodejs \
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN npm install -g pnpm@latest \
   && pnpm install --frozen-lockfile --prod \
   && pnpm store prune
