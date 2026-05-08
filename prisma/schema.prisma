@@ -34,12 +34,7 @@ model Account {
   oauthCreds   OAuthCredential[]
   magicLinks   MagicLinkToken[]
 
-  // ============================================
-  // 👇 CONSUMER ACTION REQUIRED
-  // ============================================
-  // Uncomment the line below to link your User model
-  // user User?
-  // ============================================
+  user User?
 }
 
 model PasswordHash {
@@ -98,3 +93,98 @@ model MagicLinkToken {
 // ============================================
 // End of @odysseon/whoami-adapter-prisma
 // ============================================
+
+enum Role {
+  USER
+  VENUE_OWNER
+  ADMIN
+}
+
+model User {
+  id        String  @id @default(cuid())
+  accountId String  @unique
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  name String
+  role Role   @default(VENUE_OWNER)
+
+  // A venue owner can manage multiple venues
+  venues EventCentre[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- CORE PRODUCT LAYER ---
+
+model EventCentre {
+  id   String @id @default(cuid())
+  slug String @unique
+
+  // Core Info
+  name        String
+  description String?
+  location    String // e.g., "Ikeja", "Lekki" (Good for fast filtering)
+  address     String
+  capacity    Int
+
+  // Pricing Range
+  priceRangeMin Float?
+  priceRangeMax Float?
+
+  // Conversion / Contact
+  contactPhone    String?
+  contactWhatsapp String?
+
+  // Trust Signal
+  isVerified Boolean @default(false)
+
+  // Relations
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  media     VenueMedia[]
+  perks     Perk[]
+  amenities Amenity[] // Implicit Many-to-Many
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([location, capacity]) // Optimize for discovery/filtering
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model VenueMedia {
+  id      String    @id @default(cuid())
+  url     String
+  type    MediaType @default(IMAGE)
+  caption String?
+  order   Int       @default(0) // Crucial for "mainImage" sorting
+
+  eventCentreId String
+  eventCentre   EventCentre @relation(fields: [eventCentreId], references: [id], onDelete: Cascade)
+
+  @@index([eventCentreId])
+}
+
+model Amenity {
+  id   String @id @default(cuid())
+  name String @unique // e.g., "Parking", "AC", "Generator"
+
+  venues EventCentre[]
+}
+
+model Perk {
+  id          String  @id @default(cuid())
+  title       String // e.g., "Free Photography"
+  description String? // e.g., "6 hours coverage included"
+
+  eventCentreId String
+  eventCentre   EventCentre @relation(fields: [eventCentreId], references: [id], onDelete: Cascade)
+
+  @@index([eventCentreId])
+}

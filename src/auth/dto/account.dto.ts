@@ -17,6 +17,14 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(8)
   password!: string;
+
+  /**
+   * The full name of the user/owner
+   * @example "Hammed Anuoluwapo"
+   */
+  @IsString()
+  @MinLength(2)
+  name!: string;
 }
 
 export class RegisterResponse {

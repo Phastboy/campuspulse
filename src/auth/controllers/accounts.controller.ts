@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -6,17 +6,14 @@ import {
   ApiCreatedResponse,
   ApiConflictResponse,
 } from '@nestjs/swagger';
-import { Public, moduleToken } from '@odysseon/whoami-adapter-nestjs';
-import type { PasswordMethods } from '@odysseon/whoami-core/password';
+import { Public } from '@odysseon/whoami-adapter-nestjs';
 import { RegisterDto, RegisterResponse } from '../dto/index.js';
+import { RegisterAccountUseCase } from '../use-cases/register-account.service.js';
 
 @ApiTags('Accounts')
 @Controller('accounts')
 export class AccountsController {
-  constructor(
-    @Inject(moduleToken('password'))
-    private readonly password: PasswordMethods,
-  ) {}
+  constructor(private readonly registerUseCase: RegisterAccountUseCase) {}
 
   @ApiOperation({ summary: 'Register a new account' })
   @ApiBody({ type: RegisterDto })
@@ -25,15 +22,7 @@ export class AccountsController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: RegisterDto): Promise<RegisterResponse> {
-    const { account } = await this.password.registerWithPassword({
-      email: dto.email,
-      password: dto.password,
-    });
-    return {
-      accountId: account.id,
-      email: account.email,
-      createdAt: account.createdAt,
-    };
+  async register(@Body() dto: RegisterDto) {
+    return await this.registerUseCase.execute(dto);
   }
 }
