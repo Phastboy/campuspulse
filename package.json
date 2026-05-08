@@ -24,14 +24,9 @@
     "test:debug": "echo \"TODO: Add debug test runner\" && exit 0",
     "test:e2e": "echo \"TODO: Add e2e test runner\" && exit 0"
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": ">=11.0.0",
-      "onFail": "download"
-    }
-  },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1044.0",
+    "@aws-sdk/lib-storage": "^3.1044.0",
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.19",
@@ -48,6 +43,7 @@
     "@prisma/client": "^7.8.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "cloudinary": "^2.10.0",
     "dotenv": "^17.4.2",
     "express-basic-auth": "^1.2.1",
     "passport": "^0.7.0",
@@ -56,6 +52,8 @@
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "streamifier": "^0.1.1",
+    "uuid": "^14.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -68,6 +66,7 @@
     "@types/node": "^25.6.1",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
+    "@types/streamifier": "^0.1.2",
     "@types/supertest": "^7.2.0",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
@@ -82,5 +81,12 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.0.8",
+      "onFail": "download"
+    }
   }
 }
