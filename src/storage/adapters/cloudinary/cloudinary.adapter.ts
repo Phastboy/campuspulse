@@ -1,6 +1,5 @@
 import { Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { v2 as Cloudinary } from 'cloudinary';
-import * as streamifier from 'streamifier';
 import * as path from 'path';
 import { CLOUDINARY } from './cloudinary.provider.js';
 import {
@@ -18,7 +17,6 @@ export class CloudinaryStorageProvider implements StorageProvider {
 
   async upload(params: UploadParams): Promise<UploadResult> {
     return new Promise((resolve, reject) => {
-      // Cloudinary's public_id shouldn't include the file extension
       const publicIdBase = path.parse(params.fileName).name;
 
       const uploadStream = this.cloudinary.uploader.upload_stream(
@@ -35,7 +33,6 @@ export class CloudinaryStorageProvider implements StorageProvider {
 
           this.logger.log(`Uploaded image to Cloudinary: ${result.public_id}`);
 
-          // result.public_id naturally includes the folder (e.g., 'user-avatars/uuid')
           resolve({
             url: result.secure_url,
             fileId: result.public_id,
@@ -43,13 +40,12 @@ export class CloudinaryStorageProvider implements StorageProvider {
         },
       );
 
-      streamifier.createReadStream(params.fileData).pipe(uploadStream);
+      params.fileData.pipe(uploadStream);
     });
   }
 
   async delete(fileId: string): Promise<DeleteResult> {
     try {
-      // Domain leak fixed: No more URL string manipulation
       await this.cloudinary.uploader.destroy(fileId);
       this.logger.log(`Deleted image from Cloudinary: ${fileId}`);
 

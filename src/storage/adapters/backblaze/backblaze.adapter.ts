@@ -20,7 +20,6 @@ export class BackblazeStorageProvider implements StorageProvider {
 
   async upload(params: UploadParams): Promise<UploadResult> {
     try {
-      //  Build the exact key from the generic params
       const key = `${params.destination}/${params.fileName}`;
 
       const upload = new Upload({
@@ -28,7 +27,7 @@ export class BackblazeStorageProvider implements StorageProvider {
         params: {
           Bucket: this.config.bucketName,
           Key: key,
-          Body: params.fileData,
+          Body: params.fileData, // Readable — AWS SDK Upload accepts it natively
         },
         partSize: 10 * 1024 * 1024,
         queueSize: 3,
@@ -39,7 +38,6 @@ export class BackblazeStorageProvider implements StorageProvider {
       const baseUrl =
         this.config.publicUrlBase || `${this.config.endpoint}/file/${this.config.bucketName}`;
 
-      // Return both the delivery URL and the management ID (the Key)
       return {
         url: `${baseUrl}/${key}`,
         fileId: key,
@@ -52,7 +50,6 @@ export class BackblazeStorageProvider implements StorageProvider {
 
   async delete(fileId: string): Promise<DeleteResult> {
     try {
-      // Domain leak fixed: We blindly trust the fileId provided by the database
       const command = new DeleteObjectCommand({
         Bucket: this.config.bucketName,
         Key: fileId,

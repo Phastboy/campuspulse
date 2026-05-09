@@ -1,3 +1,5 @@
+import type { Readable } from 'stream';
+
 /**
  * Result returned after a successful file persistence.
  */
@@ -13,12 +15,12 @@ export interface UploadResult {
  * This is a DTO, not a class dependency.
  */
 export interface UploadParams {
-  /** The logical folder or bucket prefix [cite: 28] */
+  /** The logical folder or bucket prefix */
   destination: string;
-  /** The unique, sanitized name for the file [cite: 28] */
+  /** The unique, sanitized name for the file */
   fileName: string;
-  /** The raw file content [cite: 28] */
-  fileData: Buffer;
+  /** The raw file content as a stream */
+  fileData: Readable;
 }
 
 export interface DeleteResult {
@@ -31,7 +33,7 @@ export interface DeleteResult {
  */
 export abstract class StorageProvider {
   /**
-   * Persists bytes to the infrastructure layer.
+   * Persists a stream to the infrastructure layer.
    * @param params - The specific data needed for this upload instance.
    */
   abstract upload(params: UploadParams): Promise<UploadResult>;
