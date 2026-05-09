@@ -11,7 +11,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { Readable } from 'stream';
 import { ImageStorageService } from '../../image-storage.service.js';
-import { UploadMediaDto, ReplaceMediaDto, MediaFolderType } from './dto/upload-media.dto.js';
+import { UploadMediaDto, MediaFolderType } from './dto/upload-media.dto.js';
 import 'multer';
 
 @ApiTags('Media')
@@ -47,32 +47,5 @@ export class MediaController {
       fileName: file.originalname,
       fileData: fileStream,
     });
-  }
-
-  /**
-   * Replace an existing image with a new one.
-   * Performs an atomic-like replacement: uploads the new image first,
-   * then cleans up the old file ID.
-   *
-   * @param body - Contains the folder type and the ID of the file to replace.
-   * @param file - The new binary file data.
-   * @returns The updated public URL and new management fileId.
-   */
-  @Put('replace')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  async replaceFile(@Body() body: ReplaceMediaDto, @UploadedFile() file?: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file provided');
-
-    const fileStream = Readable.from(file.buffer);
-
-    return await this.imageStorage.replaceImage(
-      {
-        destination: this.folderMap[body.folderType],
-        fileName: file.originalname,
-        fileData: fileStream,
-      },
-      body.oldFileId,
-    );
   }
 }

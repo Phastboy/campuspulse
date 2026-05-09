@@ -103,34 +103,19 @@ export class ImageStorageService {
   }
 
   /**
-   * Orchestrates a safe image replacement.
-   * Validates and uploads the new file first, then triggers cleanup of the old file.
+   * Direct deletion for manual cleanup, account removal, or orchestrated replacements
+   * triggered by domain services (e.g., UsersService, VenuesService).
    */
-  async replaceImage(params: UploadParams, previousFileId?: string): Promise<UploadResult> {
-    const uploadResult = await this.uploadNewImage(params);
-
-    if (previousFileId) {
-      await this.safeDelete(previousFileId);
-    }
-
-    return uploadResult;
-  }
-
-  /**
-   * Direct deletion for manual cleanup or account removal.
-   */
-  async deleteImage(fileId: string) {
-    return await this.storageProvider.delete(fileId);
-  }
-
-  private async safeDelete(fileId: string) {
+  public async deleteImage(fileId: string) {
     try {
       const result = await this.storageProvider.delete(fileId);
       if (!result.success) {
-        this.logger.warn(`Orphaned file cleanup failed for ID: ${fileId}`);
+        this.logger.warn(`File cleanup failed for ID: ${fileId}`);
       }
+      return result;
     } catch (error) {
       this.logger.error(`Exception during cleanup for ID: ${fileId}`, error);
+      return { success: false, message: 'Internal cleanup exception' };
     }
   }
 }

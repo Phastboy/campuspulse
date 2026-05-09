@@ -1,4 +1,4 @@
-import { IsIn, IsString } from 'class-validator';
+import { IsIn } from 'class-validator';
 
 /**
  * Valid domain categories for storage destinations.
@@ -21,17 +21,4 @@ export class UploadMediaDto {
    */
   @IsIn(MEDIA_FOLDER_TYPES)
   folderType!: MediaFolderType;
-}
-
-/**
- * Payload for replacing an existing media asset.
- * Triggers a cleanup of the old file ID upon successful upload.
- */
-export class ReplaceMediaDto extends UploadMediaDto {
-  /**
-   * The management ID (Key or PublicID) of the previous file to be deleted.
-   * @example "users/avatars/old-file-uuid.png"
-   */
-  @IsString()
-  oldFileId!: string;
 }

@@ -1,6 +1,6 @@
 import { Controller, Get, Patch, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { CurrentIdentity } from '@odysseon/whoami-adapter-nestjs';
+import { CurrentIdentity, type RequestIdentity } from '@odysseon/whoami-adapter-nestjs';
 import { UsersService } from '../../use-cases/users.service.js';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto.js';
 
@@ -11,13 +11,16 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Get the currently authenticated user profile' })
   @Get('me')
-  async getProfile(@CurrentIdentity() accountId: string) {
-    return this.usersService.getMyProfile(accountId);
+  async getProfile(@CurrentIdentity() identity: RequestIdentity) {
+    return this.usersService.getMyProfile(identity.accountId);
   }
 
   @ApiOperation({ summary: 'Update the currently authenticated user profile' })
   @Patch('me')
-  async updateProfile(@CurrentIdentity() accountId: string, @Body() payload: UpdateUserProfileDto) {
-    return this.usersService.updateMyProfile(accountId, payload);
+  async updateProfile(
+    @CurrentIdentity() identity: RequestIdentity,
+    @Body() payload: UpdateUserProfileDto,
+  ) {
+    return this.usersService.updateMyProfile(identity.accountId, payload);
   }
 }
