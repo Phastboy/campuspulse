@@ -22,7 +22,7 @@ export class PrismaVenueRepository implements IVenueRepository {
     const whereClause: Prisma.EventCentreWhereInput = {
       ...(location && { location: { contains: location, mode: 'insensitive' } }),
       ...(minCapacity && { capacity: { gte: minCapacity } }),
-      ...(maxPrice && {
+      ...(maxPrice != null && {
         OR: [{ priceRangeMax: { lte: maxPrice } }, { priceRangeMin: { lte: maxPrice } }],
       }),
       ...(amenities &&
