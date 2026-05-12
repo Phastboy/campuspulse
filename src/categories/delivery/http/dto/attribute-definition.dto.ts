@@ -1,8 +1,8 @@
-import { IsString, IsBoolean, IsOptional, IsArray, IsIn } from "class-validator";
+import { IsString, IsBoolean, IsOptional, IsArray, IsIn } from 'class-validator';
 import {
   ATTRIBUTE_TYPES,
   type AttributeType,
-} from "../../../../shared/domain/listing.constants.js";
+} from '../../../../shared/domain/listing.constants.js';
 
 /**
  * Defines a single dynamic attribute rule for a category.
