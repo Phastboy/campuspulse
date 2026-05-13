@@ -94,20 +94,139 @@ model MagicLinkToken {
 // End of @odysseon/whoami-adapter-prisma
 // ============================================
 
+enum PlatformRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id String @id @default(cuid())
+
+  accountId String  @unique
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  name String
+
+  avatarUrl String?
+  avatarId  String?
+
+  phoneNumber String?
+
+  role PlatformRole @default(USER)
+
+  // Commercial identities owned by this user
+  businessProfiles BusinessProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
 // ==========================================
-// DISCOVERY ENGINE
+// COMMERCIAL / BUSINESS LAYER
+// ==========================================
+
+enum BusinessType {
+  INDIVIDUAL
+  RETAILER
+  DISTRIBUTOR
+  MANUFACTURER
+  WHOLESALER
+  AGENCY
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model BusinessProfile {
+  id String @id @default(cuid())
+
+  // ==========================================
+  // Ownership
+  // ==========================================
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // ==========================================
+  // Public Identity
+  // ==========================================
+  name String
+  slug String @unique
+
+  description String?
+
+  type BusinessType @default(INDIVIDUAL)
+
+  // ==========================================
+  // Branding
+  // ==========================================
+  logoUrl String?
+  logoId  String?
+
+  bannerUrl String?
+  bannerId  String?
+
+  // ==========================================
+  // Contact / Trust
+  // ==========================================
+  email String?
+
+  phoneNumber String?
+  whatsapp    String?
+
+  location String?
+
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+
+  // ==========================================
+  // Visibility
+  // ==========================================
+  isPublic Boolean @default(true)
+
+  // ==========================================
+  // Marketplace Relations
+  // ==========================================
+  listings Listing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([slug])
+  @@index([verificationStatus])
+}
+
+// ==========================================
+// CATEGORY / TAXONOMY LAYER
 // ==========================================
 
 model Category {
-  id   String @id @default(cuid())
+  id String @id @default(cuid())
+
   slug String @unique
   name String
 
-  // The Blueprint: Defines what a user sees/filters for in this category
+  description String?
+
+  // Hierarchical taxonomy
+  parentId String?
+  parent   Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+
+  children Category[] @relation("CategoryHierarchy")
+
+  // Blueprint attributes
   attributes CategoryAttribute[]
-  listings   Listing[]
+
+  listings Listing[]
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum AttributeType {
@@ -118,78 +237,120 @@ enum AttributeType {
 }
 
 model CategoryAttribute {
-  id         String   @id @default(cuid())
+  id String @id @default(cuid())
+
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  key        String // e.g., "capacity", "parking_slots"
-  label      String // e.g., "Guest Capacity"
-  type       AttributeType
-  isRequired Boolean       @default(false)
+  key         String
+  label       String
+  description String?
 
-  // For SELECT types: e.g., ["Lekki", "Ikeja", "Victoria Island"]
+  type AttributeType
+
+  isRequired Boolean @default(false)
+
+  // Used for SELECT options
   options Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([categoryId, key])
 }
 
+// ==========================================
+// LISTING / DISCOVERY LAYER
+// ==========================================
+
+enum ListingStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  SUSPENDED
+}
+
 model Listing {
-  id          String  @id @default(cuid())
-  slug        String  @unique
+  id String @id @default(cuid())
+
+  slug String @unique
+
   title       String
   description String?
 
+  // ==========================================
+  // Category
+  // ==========================================
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
-  // Core searchable fields (Common across all listings)
-  basePrice  Float
-  currency   String  @default("NGN")
-  isVerified Boolean @default(false)
+  // ==========================================
+  // Ownership
+  // ==========================================
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
 
   // ==========================================
-  // DYNAMIC DATA
-  // Validated against CategoryAttribute blueprint in the Service layer
+  // Commercial Data
+  // ==========================================
+  priceMin Float?
+  priceMax Float?
+
+  currency String @default("NGN")
+
+  // ==========================================
+  // Dynamic Attributes
   // ==========================================
   attributes Json @default("{}")
 
-  ownerId String
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  // ==========================================
+  // Visibility / Moderation
+  // ==========================================
+  status ListingStatus @default(DRAFT)
 
+  isVerified Boolean @default(false)
+
+  // ==========================================
+  // Relations
+  // ==========================================
   media Media[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([categoryId, isVerified])
+  @@index([categoryId])
+  @@index([businessProfileId])
+  @@index([status])
+  @@index([categoryId, status])
   @@index([attributes], type: Gin)
 }
 
+// ==========================================
+// MEDIA LAYER
+// ==========================================
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
 model Media {
-  id       String @id @default(cuid())
+  id String @id @default(cuid())
+
   publicId String @unique
   url      String
-  type     String @default("IMAGE")
-  order    Int    @default(0)
+
+  type MediaType @default(IMAGE)
+
+  order Int @default(0)
+
+  caption String?
 
   listingId String?
   listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
-}
 
-enum Role {
-  USER
-  ADMIN
-}
+  createdAt DateTime @default(now())
 
-model User {
-  id        String  @id @default(cuid())
-  accountId String  @unique
-  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  name String
-  role Role[]
-
-  avatarUrl String?
-  avatarId  String?
-  listings  Listing[]
+  @@index([listingId])
 }

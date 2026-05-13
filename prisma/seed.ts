@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from "../generated/prisma/client.js";
+import { PrismaClient, PlatformRole } from "../generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Argon2PasswordHasher } from "@odysseon/whoami-adapter-argon2";
 import "dotenv/config";
@@ -34,7 +34,7 @@ async function main() {
       user: {
         create: {
           name: "Steven Aanu",
-          role: [Role.ADMIN, Role.USER],
+          role: PlatformRole.ADMIN,
           avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Steven",
         },
       },
