@@ -17,7 +17,6 @@ async function main() {
     throw new Error('ADMIN_PASSWORD environment variable is not set');
   }
   const email = 'aanusteven8@gmail.com';
-  console.log('🔐 Hashing admin password...', password);
   const hashedPassword = await hasher.hash(password);
 
   console.log('🌱 Seeding Admin Account and User profile...');
