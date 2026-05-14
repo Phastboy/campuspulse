@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsString,
   IsNumber,
@@ -8,56 +8,56 @@ import {
   Min,
   IsArray,
   ValidateNested,
-} from 'class-validator';
-import { MediaDto } from '../../../../shared/dto/media.dto.js';
+} from "class-validator";
+import { MediaDto } from "../../../../shared/dto/media.dto.js";
 
 /**
  * Payload for creating a new listing.
- * Combines static relational data with a dynamic attributes blob.
+ * Now requires a businessProfileId to establish commercial ownership.
  */
 export class CreateListingDto {
-  /**
-   * The primary display name of the listing.
-   * @example "Civic Centre Panorama Hall"
-   */
   @IsString()
   @IsNotEmpty()
   title!: string;
 
-  /**
-   * A detailed narrative describing the listing.
-   */
   @IsString()
   @IsOptional()
   description?: string;
 
   /**
-   * ID of the Category that defines the allowed attributes for this listing.
+   * The commercial identity posting this listing.
    */
+  @IsString()
+  @IsNotEmpty()
+  businessProfileId!: string;
+
   @IsString()
   @IsNotEmpty()
   categoryId!: string;
 
   /**
-   * The baseline price for the listing.
-   * @example 250000.00
+   * Minimum price or fixed price.
+   * @example 1200000
    */
   @IsNumber()
   @Min(0)
-  basePrice!: number;
+  minPrice!: number;
 
   /**
-   * ISO currency code.
-   * @default "NGN"
+   * Optional maximum price for price ranges.
+   * @example 1500000
    */
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  maxPrice?: number;
+
   @IsString()
   @IsOptional()
-  currency: string = 'NGN';
+  currency: string = "NGN";
 
   /**
-   * Dynamic characteristics of the listing.
    * Must match the schema defined by the category's Blueprint.
-   * @example { "capacity": 500, "location": "Lekki", "has_generator": true }
    */
   @IsObject()
   @IsNotEmpty()

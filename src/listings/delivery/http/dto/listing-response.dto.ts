@@ -1,3 +1,5 @@
+import { ListingStatus } from "../../../../../generated/prisma/client.js";
+
 /**
  * Metadata for the category of a listing.
  */
@@ -36,8 +38,13 @@ export class ListingResponseDto {
   /** @example "Grand Ballroom" */
   title!: string;
 
-  /** @example 150000 */
-  basePrice!: number;
+  description!: string | null;
+
+  priceMin!: number | null;
+  priceMax!: number | null;
+
+  isVerified!: boolean;
+  createdAt!: Date;
 
   /** @example "NGN" */
   currency!: string;

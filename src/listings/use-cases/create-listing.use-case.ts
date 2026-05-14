@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from "@nestjs/common";
 import {
   LISTING_REPOSITORY_TOKEN,
   type IListingRepository,
-} from '../core/ports/listing.repository.interface.js';
-import { CategoriesService } from '../../categories/use-cases/categories.service.js';
-import { CreateListingDto } from '../delivery/http/dto/create-listing.dto.js';
-import { ListingResponseDto } from '../delivery/http/dto/listing-response.dto.js';
+} from "../core/ports/listing.repository.interface.js";
+import { CategoriesService } from "../../categories/use-cases/categories.service.js";
+import { CreateListingDto } from "../delivery/http/dto/create-listing.dto.js";
+import { ListingResponseDto } from "../delivery/http/dto/listing-response.dto.js";
 
 @Injectable()
 export class CreateListingUseCase {
@@ -20,14 +20,6 @@ export class CreateListingUseCase {
     // We delegate the "heavy lifting" of attribute checking to the Category domain.
     await this.categoriesService.validateAttributes(payload.categoryId, payload.attributes);
 
-    // 2. Slug Generation
-    const slug = this.generateSlug(payload.title);
-
-    // 3. Persistence
-    return this.repository.create(accountId, payload, slug);
-  }
-
-  private generateSlug(title: string): string {
-    return `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString().slice(-4)}`;
+    return this.repository.create(accountId, payload);
   }
 }

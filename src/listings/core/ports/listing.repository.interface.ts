@@ -1,12 +1,12 @@
-import { CreateListingDto } from '../../delivery/http/dto/create-listing.dto.js';
-import { GetListingsFilterDto } from '../../delivery/http/dto/get-listings-filter.dto.js';
-import { UpdateListingDto } from '../../delivery/http/dto/update-listing.dto.js';
-import { ListingView } from '../domain/listing.view.js';
+import { CreateListingDto } from "../../delivery/http/dto/create-listing.dto.js";
+import { GetListingsFilterDto } from "../../delivery/http/dto/get-listings-filter.dto.js";
+import { UpdateListingDto } from "../../delivery/http/dto/update-listing.dto.js";
+import { ListingView } from "../domain/listing.view.js";
 
 /**
  * Unique token for NestJS dependency injection.
  */
-export const LISTING_REPOSITORY_TOKEN = Symbol('LISTING_REPOSITORY_TOKEN');
+export const LISTING_REPOSITORY_TOKEN = Symbol("LISTING_REPOSITORY_TOKEN");
 
 /**
  * Interface defining the persistence contract for listings.
@@ -17,7 +17,7 @@ export interface IListingRepository {
    * Persists a new listing and returns the domain-mapped view.
    * Handles the initial attachment of media and category relations.
    */
-  create(ownerId: string, payload: CreateListingDto, slug: string): Promise<ListingView>;
+  create(ownerId: string, payload: CreateListingDto): Promise<ListingView>;
 
   update(id: string, accountId: string, data: UpdateListingDto): Promise<ListingView>;
 

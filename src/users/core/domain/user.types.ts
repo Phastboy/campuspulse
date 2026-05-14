@@ -1,10 +1,10 @@
-export type RoleType = 'USER' | 'ADMIN';
+export type PlatformRole = "USER" | "MODERATOR" | "ADMIN";
 
 export interface UserEntity {
   id: string;
   accountId: string;
   name: string;
-  role: RoleType[];
+  role: PlatformRole;
   avatarUrl: string | null;
   avatarId: string | null;
 }

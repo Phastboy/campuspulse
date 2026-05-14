@@ -1,14 +1,24 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { IListingRepository } from '../core/ports/listing.repository.interface.js';
-import { CreateListingDto } from '../delivery/http/dto/create-listing.dto.js';
-import { GetListingsFilterDto } from '../delivery/http/dto/get-listings-filter.dto.js';
-import { ListingView } from '../core/domain/listing.view.js';
-import { Prisma } from '../../../generated/prisma/client.js';
-import { ListingMapper } from './mappers/listing.mapper.js';
-import { UpdateListingDto } from '../delivery/http/dto/update-listing.dto.js';
-import { MediaStorageService } from '../../storage/media-storage.service.js';
-import slugify from 'slugify';
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { IListingRepository } from "../core/ports/listing.repository.interface.js";
+import { CreateListingDto } from "../delivery/http/dto/create-listing.dto.js";
+import { GetListingsFilterDto } from "../delivery/http/dto/get-listings-filter.dto.js";
+import { ListingView } from "../core/domain/listing.view.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+import { ListingMapper } from "./mappers/listing.mapper.js";
+import { UpdateListingDto } from "../delivery/http/dto/update-listing.dto.js";
+import { MediaStorageService } from "../../storage/media-storage.service.js";
+import slugify from "slugify";
+
+const LISTING_INCLUDE = {
+  category: true,
+  media: true,
+  businessProfile: {
+    include: {
+      owner: { select: { accountId: true } },
+    },
+  },
+} satisfies Prisma.ListingInclude;
 
 @Injectable()
 export class PrismaListingsRepository implements IListingRepository {
@@ -25,7 +35,7 @@ export class PrismaListingsRepository implements IListingRepository {
       ...(category && { category: { slug: category } }),
       ...(minPrice !== undefined || maxPrice !== undefined
         ? {
-            basePrice: {
+            priceMin: {
               ...(minPrice !== undefined && { gte: minPrice }),
               ...(maxPrice !== undefined && { lte: maxPrice }),
             },
@@ -33,18 +43,15 @@ export class PrismaListingsRepository implements IListingRepository {
         : {}),
       ...(search && {
         OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
+          { title: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
         ],
       }),
     };
 
     if (attributes && Object.keys(attributes).length > 0) {
       where.AND = Object.entries(attributes).map(([key, value]) => ({
-        attributes: {
-          path: [key],
-          equals: value as Prisma.InputJsonValue,
-        },
+        attributes: { path: [key], equals: value as Prisma.InputJsonValue },
       }));
     }
 
@@ -53,39 +60,45 @@ export class PrismaListingsRepository implements IListingRepository {
         where,
         skip,
         take: limit,
-        include: {
-          category: true,
-          media: true,
-          owner: { select: { name: true, avatarUrl: true } },
-        },
-        orderBy: { createdAt: 'desc' },
+        include: LISTING_INCLUDE,
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.listing.count({ where }),
     ]);
 
     return {
-      data: rawListings.map((listing) => ListingMapper.toView(listing)),
+      data: rawListings.map((listing) => ListingMapper.toView(listing as any)),
       total,
     };
   }
 
-  async create(accountId: string, payload: CreateListingDto): Promise<ListingView> {
+  async create(
+    accountId: string,
+    payload: CreateListingDto & { businessProfileId: string },
+  ): Promise<ListingView> {
     const baseSlug = slugify(payload.title, { lower: true, strict: true, trim: true });
     const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
 
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { accountId } });
+    // Verify BusinessProfile ownership
+    const profile = await this.prisma.businessProfile.findFirst({
+      where: { id: payload.businessProfileId, owner: { accountId } },
+    });
+
+    if (!profile)
+      throw new ForbiddenException("Invalid business profile or insufficient permissions");
 
     const rawListing = await this.prisma.listing.create({
       data: {
         slug,
         title: payload.title,
         description: payload.description,
-        basePrice: payload.basePrice,
         currency: payload.currency,
+        priceMin: payload.minPrice,
+        priceMax: payload.maxPrice,
         attributes: payload.attributes as Prisma.JsonObject,
         categoryId: payload.categoryId,
-        ownerId: user.id,
-
+        businessProfileId: profile.id, // Linking to the business identity
+        status: "PUBLISHED",
         media: payload.media
           ? {
               create: payload.media.map((m) => ({
@@ -96,11 +109,7 @@ export class PrismaListingsRepository implements IListingRepository {
             }
           : undefined,
       },
-      include: {
-        category: true,
-        media: true,
-        owner: { select: { name: true, avatarUrl: true } },
-      },
+      include: LISTING_INCLUDE,
     });
 
     return ListingMapper.toView(rawListing);
@@ -109,35 +118,42 @@ export class PrismaListingsRepository implements IListingRepository {
   async update(id: string, accountId: string, payload: UpdateListingDto): Promise<ListingView> {
     const existing = await this.prisma.listing.findUnique({
       where: { id },
-      include: { media: true, owner: { select: { accountId: true } } },
+      include: LISTING_INCLUDE,
     });
 
-    if (!existing) throw new NotFoundException('Listing not found');
+    if (!existing) throw new NotFoundException("Listing not found");
 
-    if (existing.owner.accountId !== accountId) {
-      throw new ForbiddenException('You do not have permission to update this listing');
+    // Deep ownership check: Account -> User -> BusinessProfile -> Listing
+    if (existing.businessProfile.owner.accountId !== accountId) {
+      throw new ForbiddenException("You do not have permission to update this listing");
     }
 
     const updateData: Prisma.ListingUpdateInput = {
       title: payload.title,
       description: payload.description,
-      basePrice: payload.basePrice,
-      ...(payload.categoryId ? { category: { connect: { id: payload.categoryId } } } : {}),
+      priceMin: payload.minPrice,
+      priceMax: payload.maxPrice,
       attributes: payload.attributes,
+      // Handle Category Relation Update
+      ...(payload.categoryId && {
+        category: { connect: { id: payload.categoryId } },
+      }),
     };
 
+    // Handle Media Relation Update (Syncing images)
     if (payload.media) {
       const currentPublicIds = existing.media.map((m) => m.publicId);
       const newPublicIds = payload.media.map((m) => m.publicId);
 
+      // 1. Identify and delete removed files from storage
       const toDelete = currentPublicIds.filter((pubId) => !newPublicIds.includes(pubId));
-
       if (toDelete.length > 0) {
         await Promise.all(toDelete.map((pubId) => this.mediaStorage.deleteMedia(pubId)));
       }
 
+      // 2. Refresh the media relations
       updateData.media = {
-        deleteMany: {},
+        deleteMany: {}, // Clear existing links in DB
         create: payload.media.map((m) => ({
           url: m.url,
           publicId: m.publicId,
@@ -149,11 +165,7 @@ export class PrismaListingsRepository implements IListingRepository {
     const updated = await this.prisma.listing.update({
       where: { id },
       data: updateData,
-      include: {
-        category: true,
-        media: true,
-        owner: { select: { name: true, avatarUrl: true } },
-      },
+      include: LISTING_INCLUDE,
     });
 
     return ListingMapper.toView(updated);
@@ -162,46 +174,30 @@ export class PrismaListingsRepository implements IListingRepository {
   async findBySlug(slug: string): Promise<ListingView | null> {
     const rawListing = await this.prisma.listing.findUnique({
       where: { slug },
-      include: {
-        category: true,
-        media: true,
-        owner: { select: { name: true, avatarUrl: true } },
-      },
+      include: LISTING_INCLUDE,
     });
-
-    if (!rawListing) return null;
-
-    return ListingMapper.toView(rawListing);
+    return rawListing ? ListingMapper.toView(rawListing) : null;
   }
 
   async findById(id: string): Promise<ListingView | null> {
     const rawListing = await this.prisma.listing.findUnique({
       where: { id },
-      include: {
-        category: true,
-        media: true,
-        owner: { select: { name: true, avatarUrl: true } },
-      },
+      include: LISTING_INCLUDE,
     });
 
     if (!rawListing) return null;
-
     return ListingMapper.toView(rawListing);
   }
 
   async delete(id: string, accountId: string): Promise<void> {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
-      include: {
-        media: true,
-        owner: { select: { accountId: true } },
-      },
+      include: LISTING_INCLUDE,
     });
 
-    if (!listing) throw new NotFoundException('Listing not found');
-
-    if (listing.owner.accountId !== accountId) {
-      throw new ForbiddenException('You do not have permission to delete this listing');
+    if (!listing) throw new NotFoundException("Listing not found");
+    if (listing.businessProfile.owner.accountId !== accountId) {
+      throw new ForbiddenException("Permission denied");
     }
 
     if (listing.media.length > 0) {
@@ -209,8 +205,6 @@ export class PrismaListingsRepository implements IListingRepository {
       await Promise.all(publicIds.map((pid) => this.mediaStorage.deleteMedia(pid)));
     }
 
-    await this.prisma.listing.delete({
-      where: { id },
-    });
+    await this.prisma.listing.delete({ where: { id } });
   }
 }

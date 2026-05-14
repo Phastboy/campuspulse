@@ -1,9 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
-import { RoleType } from '../../users/core/domain/user.types.js';
-import type { RequestIdentity } from '@odysseon/whoami-adapter-nestjs';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { ROLES_KEY } from "../decorators/roles.decorator.js";
+import { PlatformRole } from "../../../generated/prisma/client.js";
+import type { RequestIdentity } from "@odysseon/whoami-adapter-nestjs";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -13,12 +13,11 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<RoleType[]>(ROLES_KEY, [
+    const requiredRoles = this.reflector.getAllAndOverride<PlatformRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // If no roles are required, let it pass
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
     const request = context.switchToHttp().getRequest<{
@@ -26,24 +25,25 @@ export class RolesGuard implements CanActivate {
     }>();
 
     const accountId = request.whoami?.identity?.accountId;
-
     if (!accountId) {
-      throw new ForbiddenException('Authentication required to verify roles');
+      throw new ForbiddenException("Authentication required to verify roles");
     }
 
-    //  Database lookup
+    // Lookup the single role from the User model
     const user = await this.prisma.user.findUnique({
       where: { accountId },
       select: { role: true },
     });
 
-    if (!user) throw new ForbiddenException('User profile not found');
+    if (!user) throw new ForbiddenException("User profile not found");
 
-    // Deterministic Intersection: Does the user have ANY of the required roles?
-    const hasPermission = user.role.some((role) => requiredRoles.includes(role));
+    // Simple check: Is the user's role one of the roles allowed for this endpoint?
+    const hasPermission = requiredRoles.includes(user.role);
 
     if (!hasPermission) {
-      throw new ForbiddenException('Insufficient permissions');
+      throw new ForbiddenException(
+        `Insufficient permissions. Required: [${requiredRoles.join(", ")}]`,
+      );
     }
 
     return true;

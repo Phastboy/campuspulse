@@ -1,16 +1,15 @@
-import { Injectable, Inject, ConflictException, Logger } from '@nestjs/common';
-import { moduleToken } from '@odysseon/whoami-adapter-nestjs';
-import type { PasswordMethods } from '@odysseon/whoami-core/password';
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { RegisterDto } from '../dto/index.js';
-import { Role } from '../../../generated/prisma/client.js';
+import { Injectable, Inject, ConflictException, Logger } from "@nestjs/common";
+import { moduleToken } from "@odysseon/whoami-adapter-nestjs";
+import type { PasswordMethods } from "@odysseon/whoami-core/password";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { RegisterDto } from "../dto/index.js";
 
 @Injectable()
 export class RegisterAccountUseCase {
   private readonly logger = new Logger(RegisterAccountUseCase.name);
 
   constructor(
-    @Inject(moduleToken('password'))
+    @Inject(moduleToken("password"))
     private readonly passwordAuth: PasswordMethods,
     private readonly prisma: PrismaService,
   ) {}
@@ -28,7 +27,6 @@ export class RegisterAccountUseCase {
         data: {
           accountId: account.id,
           name: dto.name,
-          role: [Role.USER],
         },
       });
 
@@ -50,8 +48,8 @@ export class RegisterAccountUseCase {
         );
 
       // check for Prisma unique constraint violation
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-        throw new ConflictException('Email already exists');
+      if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+        throw new ConflictException("Email already exists");
       }
 
       throw error;
