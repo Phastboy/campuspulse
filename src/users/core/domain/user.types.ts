@@ -1,4 +1,4 @@
-export type PlatformRole = "USER" | "MODERATOR" | "ADMIN";
+export type PlatformRole = 'USER' | 'MODERATOR' | 'ADMIN';
 
 export interface UserEntity {
   id: string;

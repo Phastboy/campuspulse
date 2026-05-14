@@ -1,4 +1,4 @@
-import { MediaType } from "../../../shared/domain/listing.constants.js";
+import { MediaType } from '../../../shared/domain/listing.constants.js';
 
 /**
  * The allowed scalar values for any dynamic attribute,

@@ -1,43 +1,29 @@
-import { CreateListingDto } from "../../delivery/http/dto/create-listing.dto.js";
-import { GetListingsFilterDto } from "../../delivery/http/dto/get-listings-filter.dto.js";
-import { UpdateListingDto } from "../../delivery/http/dto/update-listing.dto.js";
-import { ListingView } from "../domain/listing.view.js";
+import { CreateListingDto } from '../../delivery/http/dto/create-listing.dto.js';
+import { GetListingsFilterDto } from '../../delivery/http/dto/get-listings-filter.dto.js';
+import { UpdateListingDto } from '../../delivery/http/dto/update-listing.dto.js';
+import { ListingView } from '../domain/listing.view.js';
 
-/**
- * Unique token for NestJS dependency injection.
- */
-export const LISTING_REPOSITORY_TOKEN = Symbol("LISTING_REPOSITORY_TOKEN");
+export const LISTING_REPOSITORY_TOKEN = Symbol('LISTING_REPOSITORY_TOKEN');
 
-/**
- * Interface defining the persistence contract for listings.
- * Implementation-agnostic to support future infrastructure migrations.
- */
 export interface IListingRepository {
-  /**
-   * Persists a new listing and returns the domain-mapped view.
-   * Handles the initial attachment of media and category relations.
-   */
   create(ownerId: string, payload: CreateListingDto): Promise<ListingView>;
 
   update(id: string, accountId: string, data: UpdateListingDto): Promise<ListingView>;
 
   delete(id: string, accountId: string): Promise<void>;
 
-  /**
-   * Retrieves a paginated list of listings based on standard and dynamic filters.
-   */
   findMany(filters: GetListingsFilterDto): Promise<{
     data: ListingView[];
     total: number;
   }>;
 
-  /**
-   * Fetches a detailed listing by its unique slug.
-   */
   findBySlug(slug: string): Promise<ListingView | null>;
 
-  /**
-   * Fetches a listing by its ID.
-   */
   findById(id: string): Promise<ListingView | null>;
+
+  /**
+   * Returns published listings belonging to a business profile.
+   * Used by the business discovery surface — read-only, no ownership check.
+   */
+  findByBusinessProfileId(businessProfileId: string): Promise<ListingView[]>;
 }

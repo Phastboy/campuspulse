@@ -1,6 +1,6 @@
-import { ListingView, DynamicAttributes } from "../../core/domain/listing.view.js";
-import { Prisma } from "../../../../generated/prisma/client.js";
-import { MediaType } from "../../../shared/domain/listing.constants.js";
+import { ListingView, DynamicAttributes } from '../../core/domain/listing.view.js';
+import { Prisma } from '../../../../generated/prisma/client.js';
+import { MediaType } from '../../../shared/domain/listing.constants.js';
 
 type ListingWithRelations = Prisma.ListingGetPayload<{
   include: {

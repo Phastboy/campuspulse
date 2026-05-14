@@ -1,4 +1,4 @@
-import { Type } from "class-transformer";
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNumber,
@@ -8,8 +8,8 @@ import {
   Min,
   IsArray,
   ValidateNested,
-} from "class-validator";
-import { MediaDto } from "../../../../shared/dto/media.dto.js";
+} from 'class-validator';
+import { MediaDto } from '../../../../shared/dto/media.dto.js';
 
 /**
  * Payload for creating a new listing.
@@ -54,7 +54,7 @@ export class CreateListingDto {
 
   @IsString()
   @IsOptional()
-  currency: string = "NGN";
+  currency: string = 'NGN';
 
   /**
    * Must match the schema defined by the category's Blueprint.

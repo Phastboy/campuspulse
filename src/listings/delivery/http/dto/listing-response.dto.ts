@@ -1,4 +1,4 @@
-import { ListingStatus } from "../../../../../generated/prisma/client.js";
+import { ListingStatus } from '../../../../../generated/prisma/client.js';
 
 /**
  * Metadata for the category of a listing.

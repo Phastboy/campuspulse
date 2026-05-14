@@ -7,10 +7,10 @@ import {
   IsArray,
   ValidateNested,
   Min,
-} from "class-validator";
-import { type DynamicAttributes } from "../../../core/domain/listing.view.js";
-import { MediaDto } from "../../../../shared/dto/media.dto.js";
-import { Type } from "class-transformer";
+} from 'class-validator';
+import { type DynamicAttributes } from '../../../core/domain/listing.view.js';
+import { MediaDto } from '../../../../shared/dto/media.dto.js';
+import { Type } from 'class-transformer';
 
 export class UpdateListingDto {
   @IsOptional()

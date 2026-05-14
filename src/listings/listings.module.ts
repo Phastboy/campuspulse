@@ -25,5 +25,6 @@ import { DeleteListingUseCase } from './use-cases/delete-listing.use-case.js';
       useClass: PrismaListingsRepository,
     },
   ],
+  exports: [LISTING_REPOSITORY_TOKEN],
 })
 export class ListingsModule {}

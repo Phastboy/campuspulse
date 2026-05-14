@@ -1,9 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { PrismaService } from "../../prisma/prisma.service.js";
-import { ROLES_KEY } from "../decorators/roles.decorator.js";
-import { PlatformRole } from "../../../generated/prisma/client.js";
-import type { RequestIdentity } from "@odysseon/whoami-adapter-nestjs";
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { ROLES_KEY } from '../decorators/roles.decorator.js';
+import { PlatformRole } from '../../../generated/prisma/client.js';
+import type { RequestIdentity } from '@odysseon/whoami-adapter-nestjs';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -26,7 +26,7 @@ export class RolesGuard implements CanActivate {
 
     const accountId = request.whoami?.identity?.accountId;
     if (!accountId) {
-      throw new ForbiddenException("Authentication required to verify roles");
+      throw new ForbiddenException('Authentication required to verify roles');
     }
 
     // Lookup the single role from the User model
@@ -35,14 +35,14 @@ export class RolesGuard implements CanActivate {
       select: { role: true },
     });
 
-    if (!user) throw new ForbiddenException("User profile not found");
+    if (!user) throw new ForbiddenException('User profile not found');
 
     // Simple check: Is the user's role one of the roles allowed for this endpoint?
     const hasPermission = requiredRoles.includes(user.role);
 
     if (!hasPermission) {
       throw new ForbiddenException(
-        `Insufficient permissions. Required: [${requiredRoles.join(", ")}]`,
+        `Insufficient permissions. Required: [${requiredRoles.join(', ')}]`,
       );
     }
 

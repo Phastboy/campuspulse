@@ -8,6 +8,7 @@ import { StorageModule } from './storage/storage.module.js';
 import { UsersModule } from './users/users.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { ListingsModule } from './listings/listings.module.js';
+import { BusinessesModule } from './businesses/businesses.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ListingsModule } from './listings/listings.module.js';
     UsersModule,
     CategoriesModule,
     ListingsModule,
+    BusinessesModule,
   ],
   controllers: [HealthController],
 })

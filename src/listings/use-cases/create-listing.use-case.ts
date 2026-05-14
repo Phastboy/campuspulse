@@ -1,11 +1,11 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable } from '@nestjs/common';
 import {
   LISTING_REPOSITORY_TOKEN,
   type IListingRepository,
-} from "../core/ports/listing.repository.interface.js";
-import { CategoriesService } from "../../categories/use-cases/categories.service.js";
-import { CreateListingDto } from "../delivery/http/dto/create-listing.dto.js";
-import { ListingResponseDto } from "../delivery/http/dto/listing-response.dto.js";
+} from '../core/ports/listing.repository.interface.js';
+import { CategoriesService } from '../../categories/use-cases/categories.service.js';
+import { CreateListingDto } from '../delivery/http/dto/create-listing.dto.js';
+import { ListingResponseDto } from '../delivery/http/dto/listing-response.dto.js';
 
 @Injectable()
 export class CreateListingUseCase {
