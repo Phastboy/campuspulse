@@ -1,4 +1,5 @@
 import { BusinessType } from './business-type.enum.js';
+import { VerificationStatus } from './verification-status.enum.js';
 
 /**
  * Input to create a new business profile.
@@ -52,9 +53,9 @@ export interface BusinessProfileView {
   readonly ownerId: string;
   readonly name: string;
   readonly slug: string;
-  readonly businessType: string;
+  readonly businessType: BusinessType;
   readonly isPublic: boolean;
-  readonly verificationStatus: string;
+  readonly verificationStatus: VerificationStatus;
   readonly description: string | null;
   readonly logoUrl: string | null;
   readonly bannerUrl: string | null;
@@ -73,8 +74,8 @@ export interface BusinessSummary {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
-  readonly businessType: string;
-  readonly verificationStatus: string;
+  readonly businessType: BusinessType;
+  readonly verificationStatus: VerificationStatus;
   readonly description: string | null;
   readonly logoUrl: string | null;
   readonly location: string | null;
@@ -84,8 +85,8 @@ export interface BusinessSummary {
  * Query parameters for the discovery surface.
  */
 export interface DiscoverBusinessesInput {
-  readonly businessType?: string;
-  readonly verificationStatus?: string;
+  readonly businessType?: BusinessType;
+  readonly verificationStatus?: VerificationStatus;
   readonly search?: string;
   readonly page: number;
   readonly limit: number;

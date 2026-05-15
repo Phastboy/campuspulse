@@ -9,6 +9,7 @@ import {
   UpdateBusinessProfileInput,
 } from '../domain/types/business-profile.types.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { Prisma } from '../../../../generated/prisma/client.js';
 
 @Injectable()
 export class PrismaBusinessProfileRepository extends IBusinessProfileRepository {
@@ -88,7 +89,7 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
   }
 
   async discover(input: DiscoverBusinessesInput): Promise<PaginatedBusinessSummaries> {
-    const where = {
+    const where: Prisma.BusinessProfileWhereInput = {
       isPublic: true,
       ...(input.businessType && { businessType: input.businessType }),
       ...(input.verificationStatus && { verificationStatus: input.verificationStatus }),
