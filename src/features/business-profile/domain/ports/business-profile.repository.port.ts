@@ -13,59 +13,45 @@ import {
  * Defined in Zone 0 (domain).
  * Implemented in Zone 3 (infrastructure — Prisma adapter).
  *
- * The domain depends on this interface, never on its implementation.
+ * Abstract class so it survives TypeScript erasure and can be used
+ * as a NestJS injection token without a separate symbol.
  */
-export interface IBusinessProfileRepository {
-  /**
-   * Persist a new business profile.
-   * Slug uniqueness is enforced at the persistence level.
-   */
-  create(input: CreateBusinessProfileInput, slug: string): Promise<BusinessProfile>;
+export abstract class IBusinessProfileRepository {
+  abstract create(input: CreateBusinessProfileInput, slug: string): Promise<BusinessProfile>;
 
-  /**
-   * Find a business profile by its internal ID.
-   * Returns null if not found.
-   */
-  findById(id: string): Promise<BusinessProfile | null>;
+  abstract findById(id: string): Promise<BusinessProfile | null>;
 
-  /**
-   * Find a business profile by its public slug.
-   * Returns null if not found.
-   */
-  findBySlug(slug: string): Promise<BusinessProfile | null>;
+  abstract findBySlug(slug: string): Promise<BusinessProfile | null>;
 
   /**
    * Check whether a slug is already taken.
    * Used before persisting to enforce the uniqueness invariant.
    */
-  isSlugTaken(slug: string): Promise<boolean>;
+  abstract isSlugTaken(slug: string): Promise<boolean>;
+
+  abstract findByOwner(ownerId: string): Promise<BusinessProfile[]>;
 
   /**
-   * Return all business profiles owned by a given user.
-   */
-  findByOwner(ownerId: string): Promise<BusinessProfile[]>;
-
-  /**
-   * Apply safe field updates to a business profile.
+   * Apply safe field updates.
    * Does not touch ownership, slug, or verification status.
    */
-  update(id: string, input: UpdateBusinessProfileInput): Promise<BusinessProfile>;
+  abstract update(id: string, input: UpdateBusinessProfileInput): Promise<BusinessProfile>;
 
   /**
    * Apply branding asset updates.
-   * Separate from update() because branding goes through the upload pipeline.
+   * Separate from update() — branding goes through the upload pipeline.
    */
-  updateBranding(id: string, input: UpdateBusinessProfileBrandingInput): Promise<BusinessProfile>;
+  abstract updateBranding(
+    id: string,
+    input: UpdateBusinessProfileBrandingInput,
+  ): Promise<BusinessProfile>;
 
-  /**
-   * Remove a business profile by ID.
-   */
-  delete(id: string): Promise<void>;
+  abstract delete(id: string): Promise<void>;
 
   /**
    * Public discovery query.
    * Must return only public profiles.
-   * Supports pagination, filtering, and text search.
    */
-  discover(input: DiscoverBusinessesInput): Promise<PaginatedBusinessSummaries>;
+  abstract discover(input: DiscoverBusinessesInput): Promise<PaginatedBusinessSummaries>;
 }
+

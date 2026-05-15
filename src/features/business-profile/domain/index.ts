@@ -17,4 +17,4 @@ export type {
 } from './types/business-profile.types.js';
 
 // Ports
-export type { IBusinessProfileRepository } from './ports/business-profile.repository.port.js';
+export { IBusinessProfileRepository } from './ports/business-profile.repository.port.js';
