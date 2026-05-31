@@ -48,15 +48,6 @@ export interface TransitionListingStatusInput {
   readonly status: ListingStatus;
 }
 
-/**
- * Input to update cover media.
- * Separated because it goes through the upload pipeline.
- */
-export interface UpdateListingCoverInput {
-  readonly coverUrl: string;
-  readonly coverId: string;
-}
-
 // ---------------------------------------------------------------------------
 // Views
 // ---------------------------------------------------------------------------

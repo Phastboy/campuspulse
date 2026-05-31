@@ -19,7 +19,7 @@ export class PublicCategoryController {
   @Get()
   async getTree(): Promise<CategoryTreeNodeDto[]> {
     const tree = await this.getCategoryTree.execute(true); // active only
-    return tree.map(CategoryTreeNodeDto.from);
+    return tree.map((node) => CategoryTreeNodeDto.from(node));
   }
 
   @Get(':slug')

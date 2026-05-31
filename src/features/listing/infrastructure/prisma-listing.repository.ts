@@ -9,7 +9,6 @@ import {
   DiscoverListingsInput,
   PaginatedListingSummaries,
   TransitionListingStatusInput,
-  UpdateListingCoverInput,
   UpdateListingInput,
 } from '../domain/types/listing.types.js';
 
@@ -55,17 +54,17 @@ export class PrismaListingRepository extends IListingRepository {
         isNegotiable: input.price?.isNegotiable ?? false,
       },
     });
-    return toDomain(raw as PrismaListingExtended);
+    return toDomain(raw);
   }
 
   async findById(id: string): Promise<Listing | null> {
     const raw = await this.prisma.listing.findUnique({ where: { id } });
-    return raw ? toDomain(raw as PrismaListingExtended) : null;
+    return raw ? toDomain(raw) : null;
   }
 
   async findBySlug(slug: string): Promise<Listing | null> {
     const raw = await this.prisma.listing.findFirst({ where: { slug } });
-    return raw ? toDomain(raw as PrismaListingExtended) : null;
+    return raw ? toDomain(raw) : null;
   }
 
   async isSlugTaken(businessProfileId: string, slug: string): Promise<boolean> {
@@ -97,7 +96,7 @@ export class PrismaListingRepository extends IListingRepository {
         }),
       },
     });
-    return toDomain(raw as PrismaListingExtended);
+    return toDomain(raw);
   }
 
   async transitionStatus(id: string, input: TransitionListingStatusInput): Promise<Listing> {
@@ -105,13 +104,7 @@ export class PrismaListingRepository extends IListingRepository {
       where: { id },
       data: { status: input.status },
     });
-    return toDomain(raw as PrismaListingExtended);
-  }
-
-  async updateCover(id: string, _input: UpdateListingCoverInput): Promise<Listing> {
-    // Cover is managed via the Media table (polymorphic resourceType/resourceId).
-    const raw = await this.prisma.listing.findUniqueOrThrow({ where: { id } });
-    return toDomain(raw as PrismaListingExtended);
+    return toDomain(raw);
   }
 
   async delete(id: string): Promise<void> {

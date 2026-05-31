@@ -57,17 +57,17 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
     const raw = await this.prisma.businessProfile.create({
       data: { ...input, slug },
     });
-    return toDomain(raw as unknown as PrismaBusinessProfileExtended);
+    return toDomain(raw);
   }
 
   async findById(id: string): Promise<BusinessProfile | null> {
     const raw = await this.prisma.businessProfile.findUnique({ where: { id } });
-    return raw ? toDomain(raw as unknown as PrismaBusinessProfileExtended) : null;
+    return raw ? toDomain(raw) : null;
   }
 
   async findBySlug(slug: string): Promise<BusinessProfile | null> {
     const raw = await this.prisma.businessProfile.findUnique({ where: { slug } });
-    return raw ? toDomain(raw as unknown as PrismaBusinessProfileExtended) : null;
+    return raw ? toDomain(raw) : null;
   }
 
   async isSlugTaken(slug: string): Promise<boolean> {
@@ -96,7 +96,7 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
         ...(input.isPublic !== undefined && { isPublic: input.isPublic }),
       },
     });
-    return toDomain(raw as unknown as PrismaBusinessProfileExtended);
+    return toDomain(raw);
   }
 
   async delete(id: string): Promise<void> {

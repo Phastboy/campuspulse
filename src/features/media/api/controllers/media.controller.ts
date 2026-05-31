@@ -249,11 +249,7 @@ export class MediaController {
   private async assertMediaOwnership(id: string, accountId: string): Promise<void> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException('Media item not found.');
-    await this.assertResourceOwnership(
-      media.resourceType as MediaResourceType,
-      media.resourceId,
-      accountId,
-    );
+    await this.assertResourceOwnership(media.resourceType, media.resourceId, accountId);
   }
 
   private async resolveUserId(accountId: string): Promise<string> {

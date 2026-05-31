@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   BadRequestException,
-  NotFoundException,
   ConflictException,
 } from '@nestjs/common';
 import { AdminGuard } from '../../../../shared/decorators/admin-guard.decorator.js';
@@ -48,7 +47,7 @@ export class CategoryController {
   @Get()
   async getTree(): Promise<CategoryTreeNodeDto[]> {
     const tree = await this.getCategoryTree.execute(false); // admin sees all
-    return tree.map(CategoryTreeNodeDto.from);
+    return tree.map((node) => CategoryTreeNodeDto.from(node));
   }
 
   @Post()

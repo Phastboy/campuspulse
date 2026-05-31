@@ -40,12 +40,9 @@ export class ListingController {
 
   @Post('businesses/:businessProfileId/listings')
   async create(
-    @CurrentIdentity() identity: RequestIdentity,
     @Param('businessProfileId') businessProfileId: string,
     @Body() dto: CreateListingDto,
   ): Promise<ListingResponseDto> {
-    const userId = await this.resolveUserId(identity.accountId);
-
     const listing = await this.createListing.execute({
       businessProfileId,
       title: dto.title,

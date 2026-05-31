@@ -2,10 +2,10 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { Public } from '@odysseon/whoami-adapter-nestjs';
 import { DiscoverListingsUseCase } from '../../application/use-cases/discover-listings.use-case.js';
 import { GetPublicListingUseCase } from '../../application/use-cases/get-public-listing.use-case.js';
-import { GetBusinessesQueryDto } from '../../../business-profile/api/dto/request.dto.js';
 import { GetListingsQueryDto } from '../dto/request.dto.js';
 import { ListingResponseDto, PaginatedListingsResponseDto } from '../dto/response.dto.js';
 import { ApiTags } from '@nestjs/swagger';
+
 @ApiTags('Listing Public Surface')
 @Public()
 @Controller()

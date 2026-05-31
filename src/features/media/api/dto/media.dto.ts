@@ -80,7 +80,7 @@ export class BusinessProfileMediaDto {
     return new BusinessProfileMediaDto(
       logo ? MediaResponseDto.from(logo) : null,
       banner ? MediaResponseDto.from(banner) : null,
-      gallery.map(MediaResponseDto.from),
+      gallery.map((item) => MediaResponseDto.from(item)),
     );
   }
 }
@@ -108,7 +108,7 @@ export class ListingMediaDto {
 
     return new ListingMediaDto(
       cover ? MediaResponseDto.from(cover) : null,
-      gallery.map(MediaResponseDto.from),
+      gallery.map((item) => MediaResponseDto.from(item)),
     );
   }
 }

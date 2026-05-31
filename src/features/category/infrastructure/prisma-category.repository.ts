@@ -52,17 +52,17 @@ export class PrismaCategoryRepository implements ICategoryRepository {
         order: input.order ?? 0,
       },
     });
-    return toDomain(raw as unknown as PrismaCategory);
+    return toDomain(raw);
   }
 
   async findById(id: string): Promise<Category | null> {
     const raw = await this.prisma.category.findUnique({ where: { id } });
-    return raw ? toDomain(raw as unknown as PrismaCategory) : null;
+    return raw ? toDomain(raw) : null;
   }
 
   async findBySlug(slug: string): Promise<Category | null> {
     const raw = await this.prisma.category.findUnique({ where: { slug } });
-    return raw ? toDomain(raw as unknown as PrismaCategory) : null;
+    return raw ? toDomain(raw) : null;
   }
 
   async isSlugTaken(slug: string): Promise<boolean> {
@@ -131,7 +131,7 @@ export class PrismaCategoryRepository implements ICategoryRepository {
         ...(input.order !== undefined ? { order: input.order } : {}),
       },
     });
-    return toDomain(raw as unknown as PrismaCategory);
+    return toDomain(raw);
   }
 
   async deactivate(id: string): Promise<Category> {
@@ -139,7 +139,7 @@ export class PrismaCategoryRepository implements ICategoryRepository {
       where: { id },
       data: { isActive: false },
     });
-    return toDomain(raw as unknown as PrismaCategory);
+    return toDomain(raw);
   }
 
   async activate(id: string): Promise<Category> {
@@ -147,7 +147,7 @@ export class PrismaCategoryRepository implements ICategoryRepository {
       where: { id },
       data: { isActive: true },
     });
-    return toDomain(raw as unknown as PrismaCategory);
+    return toDomain(raw);
   }
 
   async hasAssignments(id: string): Promise<boolean> {
