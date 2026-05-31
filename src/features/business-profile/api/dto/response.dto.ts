@@ -9,12 +9,9 @@ export class BusinessProfileResponseDto {
   ownerId: string;
   name: string;
   slug: string;
-  businessType: string;
   isPublic: boolean;
   verificationStatus: string;
   description: string | null;
-  logoUrl: string | null;
-  bannerUrl: string | null;
   phoneNumber: string | null;
   whatsapp: string | null;
   email: string | null;
@@ -26,12 +23,9 @@ export class BusinessProfileResponseDto {
     this.ownerId = profile.ownerId;
     this.name = profile.name;
     this.slug = profile.slug;
-    this.businessType = profile.businessType;
     this.isPublic = profile.isPublic;
     this.verificationStatus = profile.verificationStatus;
     this.description = profile.description;
-    this.logoUrl = profile.logoUrl;
-    this.bannerUrl = profile.bannerUrl;
     this.phoneNumber = profile.phoneNumber;
     this.whatsapp = profile.whatsapp;
     this.email = profile.email;
@@ -48,20 +42,16 @@ export class BusinessSummaryResponseDto {
   id: string;
   name: string;
   slug: string;
-  businessType: string;
   verificationStatus: string;
   description: string | null;
-  logoUrl: string | null;
   location: string | null;
 
   private constructor(summary: BusinessSummary) {
     this.id = summary.id;
     this.name = summary.name;
     this.slug = summary.slug;
-    this.businessType = summary.businessType;
     this.verificationStatus = summary.verificationStatus;
     this.description = summary.description;
-    this.logoUrl = summary.logoUrl;
     this.location = summary.location;
   }
 

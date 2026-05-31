@@ -1,22 +1,10 @@
-import {
-  IsBoolean,
-  IsEmail,
-  IsEnum,
-  IsOptional,
-  IsString,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
-import { BusinessType } from '../../domain/types/business-type.enum.js';
+import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateBusinessProfileDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
   name!: string;
-
-  @IsEnum(BusinessType)
-  businessType!: BusinessType;
 
   @IsOptional()
   @IsString()
@@ -51,10 +39,6 @@ export class UpdateBusinessProfileDto {
   name?: string;
 
   @IsOptional()
-  @IsEnum(BusinessType)
-  businessType?: BusinessType;
-
-  @IsOptional()
   @IsString()
   @MaxLength(1000)
   description?: string;
@@ -84,10 +68,6 @@ export class UpdateBusinessProfileDto {
 }
 
 export class GetBusinessesQueryDto {
-  @IsOptional()
-  @IsEnum(BusinessType)
-  businessType?: BusinessType;
-
   @IsOptional()
   @IsString()
   @MaxLength(100)

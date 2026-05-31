@@ -39,14 +39,8 @@ export class BusinessProfileController {
     const userId = await this.resolveUserId(identity.accountId);
 
     const profile = await this.createBusinessProfile.execute({
+      ...dto,
       ownerId: userId,
-      name: dto.name,
-      businessType: dto.businessType,
-      description: dto.description,
-      phoneNumber: dto.phoneNumber,
-      whatsapp: dto.whatsapp,
-      email: dto.email,
-      location: dto.location,
     });
 
     return BusinessProfileResponseDto.from(profile);
@@ -61,14 +55,7 @@ export class BusinessProfileController {
     const userId = await this.resolveUserId(identity.accountId);
 
     const profile = await this.updateBusinessProfile.execute(id, userId, {
-      name: dto.name,
-      businessType: dto.businessType,
-      description: dto.description,
-      phoneNumber: dto.phoneNumber,
-      whatsapp: dto.whatsapp,
-      email: dto.email,
-      location: dto.location,
-      isPublic: dto.isPublic,
+      ...dto,
     });
 
     return BusinessProfileResponseDto.from(profile);

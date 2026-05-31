@@ -4,7 +4,6 @@ import {
   DiscoverBusinessesInput,
   PaginatedBusinessSummaries,
 } from '../../domain/types/business-profile.types.js';
-import { BusinessType } from '../../domain/index.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -15,13 +14,11 @@ export class DiscoverBusinessesUseCase {
   constructor(private readonly repo: IBusinessProfileRepository) {}
 
   async execute(raw: {
-    businessType?: BusinessType;
     search?: string;
     page?: string;
     limit?: string;
   }): Promise<PaginatedBusinessSummaries> {
     const input: DiscoverBusinessesInput = {
-      businessType: raw.businessType,
       search: raw.search,
       page: this.parsePage(raw.page),
       limit: this.parseLimit(raw.limit),

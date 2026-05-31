@@ -1,5 +1,4 @@
 // Enums
-export { BusinessType } from './types/business-type.enum.js';
 export { VerificationStatus } from './types/verification-status.enum.js';
 
 // Entity
@@ -9,7 +8,6 @@ export type { BusinessProfile } from './types/business-profile.entity.js';
 export type {
   CreateBusinessProfileInput,
   UpdateBusinessProfileInput,
-  UpdateBusinessProfileBrandingInput,
   BusinessProfileView,
   BusinessSummary,
   DiscoverBusinessesInput,
