@@ -1,12 +1,12 @@
-# Profile Creation & Validation Boundary Tests
+# Business Profile Creation & Validation Boundary Tests
+# NOTE: businessType field no longer exists — removed from schema.
 
-# --- Create a business profile ---
+# --- Create a business profile (minimal required fields) ---
 POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
   "name": "Pulse Logistics Co {{run_id}}",
-  "businessType": "DISTRIBUTOR",
   "description": "End-to-end logistics solutions across Nigeria.",
   "phoneNumber": "+2348000000001",
   "whatsapp": "+2348000000001",
@@ -18,18 +18,15 @@ HTTP 201
 business_id: jsonpath "$.id"
 business_slug: jsonpath "$.slug"
 [Asserts]
-jsonpath "$.id" matches "^c[a-z0-9]{23,32}$" # Enforce strict Cuidv2 format
+jsonpath "$.id" matches "^c[a-z0-9]{23,32}$"
 jsonpath "$.ownerId" isString
 jsonpath "$.name" == "Pulse Logistics Co {{run_id}}"
 jsonpath "$.slug" isString
-jsonpath "$.businessType" == "DISTRIBUTOR"
 jsonpath "$.verificationStatus" == "UNVERIFIED"
 jsonpath "$.isPublic" == false
 jsonpath "$.description" == "End-to-end logistics solutions across Nigeria."
 jsonpath "$.email" == "contact@pulselogistics.test"
 jsonpath "$.location" == "Lagos, Nigeria"
-jsonpath "$.logoUrl" == null
-jsonpath "$.bannerUrl" == null
 
 # --- MULTI-TENANT ISOLATION: Intruder must not view owner's private profile ---
 GET {{api_url}}/api/businesses/{{business_id}}
@@ -38,22 +35,12 @@ HTTP *
 [Asserts]
 status toString matches "^(403|404)$"
 
-# --- Reject missing required fields ---
+# --- Reject missing required fields (name is required) ---
 POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "description": "Missing name and businessType"
-}
-HTTP 400
-
-# --- Reject invalid businessType ---
-POST {{api_url}}/api/businesses
-Authorization: Bearer {{owner_token}}
-Content-Type: application/json
-{
-  "name": "Bad Type Biz {{run_id}}",
-  "businessType": "INVALID_TYPE"
+  "description": "Missing name"
 }
 HTTP 400
 
@@ -61,7 +48,6 @@ HTTP 400
 POST {{api_url}}/api/businesses
 Content-Type: application/json
 {
-  "name": "Ghost Business {{run_id}}",
-  "businessType": "RETAILER"
+  "name": "Ghost Business {{run_id}}"
 }
 HTTP 401

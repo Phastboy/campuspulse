@@ -1,4 +1,4 @@
-# Auth validation and collection capturing
+# Auth validation and token capture
 
 # --- Owner login ---
 POST {{api_url}}/api/auth/login
@@ -13,6 +13,19 @@ owner_token: jsonpath "$.token"
 [Asserts]
 jsonpath "$.token" isString
 jsonpath "$.expiresAt" isString
+
+# --- Reviewer login ---
+POST {{api_url}}/api/auth/login
+Content-Type: application/json
+{
+  "email": "{{reviewer_email}}",
+  "password": "{{reviewer_password}}"
+}
+HTTP 200
+[Captures]
+reviewer_token: jsonpath "$.token"
+[Asserts]
+jsonpath "$.token" isString
 
 # --- Intruder login ---
 POST {{api_url}}/api/auth/login

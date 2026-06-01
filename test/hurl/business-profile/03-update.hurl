@@ -5,8 +5,7 @@ POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "name": "Update Test Biz {{run_id}}",
-  "businessType": "RETAILER"
+  "name": "Update Test Biz {{run_id}}"
 }
 HTTP 201
 [Captures]

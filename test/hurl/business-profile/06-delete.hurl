@@ -5,8 +5,7 @@ POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "name": "To Be Deleted Biz {{run_id}}",
-  "businessType": "WHOLESALER"
+  "name": "To Be Deleted Biz {{run_id}}"
 }
 HTTP 201
 [Captures]

@@ -6,7 +6,6 @@ Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
   "name": "Discovery Test Shop {{run_id}}",
-  "businessType": "RETAILER",
   "description": "A shop for discovery testing.",
   "location": "Port Harcourt, Nigeria"
 }
@@ -31,12 +30,6 @@ jsonpath "$.total" isInteger
 jsonpath "$.page" == 1
 jsonpath "$.limit" isInteger
 
-# --- Filter by businessType ---
-GET {{api_url}}/api/businesses?businessType=RETAILER
-HTTP 200
-[Asserts]
-jsonpath "$.items" isCollection
-
 # --- Search by name ---
 GET {{api_url}}/api/businesses?search=Discovery
 HTTP 200
@@ -45,13 +38,13 @@ jsonpath "$.items" isCollection
 jsonpath "$.items" count >= 1
 jsonpath "$.items[0].name" contains "Discovery"
 
-# --- Pagination Limit Verification ---
+# --- Pagination limit verification ---
 GET {{api_url}}/api/businesses?page=1&limit=5
 HTTP 200
 [Asserts]
 jsonpath "$.page" == 1
 jsonpath "$.limit" == 5
-jsonpath "$.items" count <= 5   # Tightened assertion: Ensure collection respects limit bound
+jsonpath "$.items" count <= 5
 
 # --- Get public storefront by slug (no auth) ---
 GET {{api_url}}/api/businesses/{{business_slug}}
@@ -66,8 +59,7 @@ POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "name": "Private Biz {{run_id}}",
-  "businessType": "AGENCY"
+  "name": "Private Biz {{run_id}}"
 }
 HTTP 201
 [Captures]
