@@ -77,7 +77,7 @@ export class ReviewWithMediaDto {
     this.comment = r.comment;
     this.createdAt = r.createdAt.toISOString();
     this.updatedAt = r.updatedAt.toISOString();
-    this.media = r.media.map(ReviewMediaItemDto.from);
+    this.media = r.media.map((m) => ReviewMediaItemDto.from(m));
   }
 
   static from(r: ReviewWithMedia): ReviewWithMediaDto {
@@ -94,7 +94,7 @@ export class ReviewPageDto {
   @ApiPropertyOptional({ nullable: true }) nextCursor: string | null;
 
   private constructor(page: ReviewPage) {
-    this.items = page.items.map(ReviewWithMediaDto.from);
+    this.items = page.items.map((item) => ReviewWithMediaDto.from(item));
     this.nextCursor = page.nextCursor;
   }
 

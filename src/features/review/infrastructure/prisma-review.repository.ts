@@ -10,6 +10,10 @@ import {
   ReviewWithMedia,
   ReviewMediaItem,
 } from '../domain/types/review.types.js';
+import {
+  MediaResourceType as PrismaMediaResourceType,
+  MediaRole as PrismaMediaRole,
+} from '../../../../generated/prisma/client.js';
 import type {
   Review as PrismaReview,
   Media as PrismaMedia,
@@ -79,7 +83,15 @@ export class PrismaReviewRepository extends IReviewRepository {
   async findByIdWithMedia(id: string): Promise<ReviewWithMedia | null> {
     const raw = await this.prisma.review.findUnique({
       where: { id },
-      include: { media: { orderBy: { order: 'asc' } } },
+      include: {
+        media: {
+          where: {
+            resourceType: PrismaMediaResourceType.REVIEW,
+            role: PrismaMediaRole.GALLERY,
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
     });
     return raw ? toWithMedia(raw) : null;
   }
@@ -99,8 +111,16 @@ export class PrismaReviewRepository extends IReviewRepository {
 
     const rows = await this.prisma.review.findMany({
       where: { businessProfileId: input.businessProfileId },
-      include: { media: { orderBy: { order: 'asc' } } },
-      orderBy: { createdAt: 'desc' },
+      include: {
+        media: {
+          where: {
+            resourceType: PrismaMediaResourceType.REVIEW,
+            role: PrismaMediaRole.GALLERY,
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1, // fetch one extra to detect next page
       ...(input.cursor
         ? {

@@ -2,7 +2,6 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { IReviewRepository } from '../../domain/ports/review.repository.port.js';
 import { MediaStorageService } from '../../../../storage/media-storage.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import { MediaResourceType as PrismaMediaResourceType } from '../../../../../generated/prisma/client.js';
 
 @Injectable()
 export class DeleteReviewUseCase {

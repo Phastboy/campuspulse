@@ -8,6 +8,7 @@ import { IReviewRepository } from '../../domain/ports/review.repository.port.js'
 import { Review } from '../../domain/types/review.entity.js';
 import { CreateReviewInput } from '../../domain/types/review.types.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { Prisma } from '../../../../../generated/prisma/client.js';
 
 @Injectable()
 export class CreateReviewUseCase {
@@ -40,6 +41,13 @@ export class CreateReviewUseCase {
       throw new ConflictException('You have already submitted a review for this business.');
     }
 
-    return this.reviewRepo.create(input);
+    try {
+      return await this.reviewRepo.create(input);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('You have already submitted a review for this business.');
+      }
+      throw error;
+    }
   }
 }
