@@ -22,6 +22,7 @@ type PrismaCategory = {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  parent?: PrismaCategory | null;
 };
 
 function toDomain(raw: PrismaCategory): Category {
@@ -35,6 +36,7 @@ function toDomain(raw: PrismaCategory): Category {
     isActive: raw.isActive,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    ...(raw.parent !== undefined && { parent: raw.parent ? toDomain(raw.parent) : null }),
   };
 }
 

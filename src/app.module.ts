@@ -7,6 +7,8 @@ import { HealthController } from './health/health.controller.js';
 import { StorageModule } from './storage/storage.module.js';
 import { UsersModule } from './users/users.module.js';
 import { BusinessProfileModule } from './features/business-profile/business-profile.module.js';
+import { TagModule } from './features/tag/tag.module.js';
+
 import { ListingModule } from './features/listing/listing.module.js';
 import { MediaModule } from './features/media/media.module.js';
 import { CategoryModule } from './features/category/category.module.js';
@@ -24,10 +26,12 @@ import { StoreTourModule } from './features/store-tour/store-tour.module.js';
     AuthModule,
     StorageModule.register(),
     UsersModule,
+    CategoryModule,
+    TagModule,
     BusinessProfileModule,
     ListingModule,
     MediaModule,
-    CategoryModule,
+
     ReviewModule,
     StoreTourModule,
   ],

@@ -24,6 +24,7 @@ export class BusinessProfileResponseDto {
   @ApiPropertyOptional({ nullable: true }) longitude: number | null;
   @ApiPropertyOptional({ nullable: true }) categoryId: string | null;
   @ApiProperty() createdAt: string;
+  @ApiProperty() updatedAt: string;
 
   @ApiPropertyOptional({ type: [OperatingHoursDto] }) operatingHours?: OperatingHoursDto[];
   @ApiPropertyOptional({ type: [TagDto] }) tags?: TagDto[];
@@ -44,6 +45,7 @@ export class BusinessProfileResponseDto {
     this.longitude = r.longitude;
     this.categoryId = r.categoryId;
     this.createdAt = r.createdAt.toISOString();
+    this.updatedAt = r.updatedAt.toISOString();
 
     if (r.operatingHours) {
       this.operatingHours = r.operatingHours.map((h) => OperatingHoursDto.from(h));
@@ -67,6 +69,7 @@ export class BusinessSummaryResponseDto {
   location: string | null;
   latitude: number | null;
   longitude: number | null;
+  categoryId: string | null;
   distanceKm?: number;
 
   private constructor(summary: BusinessSummary) {
@@ -78,6 +81,7 @@ export class BusinessSummaryResponseDto {
     this.location = summary.location;
     this.latitude = summary.latitude;
     this.longitude = summary.longitude;
+    this.categoryId = summary.categoryId;
     this.distanceKm = summary.distanceKm;
   }
 

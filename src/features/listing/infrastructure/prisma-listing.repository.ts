@@ -12,8 +12,16 @@ import {
   UpdateListingInput,
 } from '../domain/types/listing.types.js';
 
-// Cast to include categoryId that exists post-migration
-type PrismaListingExtended = PrismaListing & { categoryId?: string | null };
+type PrismaListingExtended = PrismaListing & { 
+  categoryId?: string | null;
+  reviews?: {
+    id: string;
+    reviewerId: string;
+    rating: number;
+    comment: string | null;
+    createdAt: Date;
+  }[];
+};
 
 function toDomain(raw: PrismaListingExtended): Listing {
   return {
@@ -32,6 +40,13 @@ function toDomain(raw: PrismaListingExtended): Listing {
     },
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    reviews: raw.reviews?.map(r => ({
+      id: r.id,
+      reviewerId: r.reviewerId,
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.createdAt,
+    })),
   };
 }
 
@@ -58,12 +73,18 @@ export class PrismaListingRepository extends IListingRepository {
   }
 
   async findById(id: string): Promise<Listing | null> {
-    const raw = await this.prisma.listing.findUnique({ where: { id } });
+    const raw = await this.prisma.listing.findUnique({ 
+      where: { id },
+      include: { reviews: true } 
+    });
     return raw ? toDomain(raw) : null;
   }
 
   async findBySlug(slug: string): Promise<Listing | null> {
-    const raw = await this.prisma.listing.findFirst({ where: { slug } });
+    const raw = await this.prisma.listing.findFirst({ 
+      where: { slug },
+      include: { reviews: true }
+    });
     return raw ? toDomain(raw) : null;
   }
 
@@ -77,6 +98,7 @@ export class PrismaListingRepository extends IListingRepository {
   async findByBusinessProfile(businessProfileId: string): Promise<Listing[]> {
     const rows = await this.prisma.listing.findMany({
       where: { businessProfileId },
+      include: { reviews: true },
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((r) => toDomain(r as PrismaListingExtended));
@@ -140,6 +162,7 @@ export class PrismaListingRepository extends IListingRepository {
         where,
         skip,
         take: input.limit,
+        include: { reviews: true },
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.listing.count({ where }),

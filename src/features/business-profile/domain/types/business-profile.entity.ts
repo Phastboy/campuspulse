@@ -23,6 +23,7 @@ export interface BusinessProfile {
   readonly phoneNumber: string | null;
   readonly whatsapp: string | null;
   readonly email: string | null;
+  readonly locationId: string | null;
   readonly location: string | null;
   readonly categoryId: string | null;
   readonly createdAt: Date;

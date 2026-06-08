@@ -67,6 +67,7 @@ function toDomain(raw: HydratedProfile): BusinessProfileView {
     phoneNumber: raw.phoneNumber,
     whatsapp: raw.whatsapp,
     email: raw.email,
+    locationId: raw.locationId,
     location: raw.locationName,
     latitude: raw.latitude,
     longitude: raw.longitude,

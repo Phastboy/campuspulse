@@ -37,6 +37,7 @@ export interface BusinessProfileView {
   readonly phoneNumber: string | null;
   readonly whatsapp: string | null;
   readonly email: string | null;
+  readonly locationId: string | null;
   readonly location: string | null;
   readonly latitude: number | null;
   readonly longitude: number | null;

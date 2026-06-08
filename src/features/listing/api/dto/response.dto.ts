@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Currency } from '../../domain/types/currency.enum.js';
 import { ListingStatus } from '../../domain/types/listing-status.enum.js';
 import { Listing } from '../../domain/types/listing.entity.js';
@@ -14,8 +15,10 @@ export class ListingResponseDto {
   maxPrice: string | null;
   currencyCode: Currency | null;
   isNegotiable: boolean;
-  createdAt: string;
-  updatedAt: string;
+  @ApiPropertyOptional({ nullable: true }) categoryId: string | null;
+  @ApiProperty() createdAt: string;
+  @ApiProperty() updatedAt: string;
+  @ApiPropertyOptional() reviews?: any[];
 
   private constructor(listing: Listing) {
     this.id = listing.id;
@@ -28,8 +31,13 @@ export class ListingResponseDto {
     this.maxPrice = listing.price.maxPrice?.toString() ?? null;
     this.currencyCode = listing.price.currencyCode;
     this.isNegotiable = listing.price.isNegotiable;
+    this.categoryId = listing.categoryId;
     this.createdAt = listing.createdAt.toISOString();
     this.updatedAt = listing.updatedAt.toISOString();
+    this.reviews = listing.reviews?.map(r => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+    }));
   }
 
   static from(listing: Listing): ListingResponseDto {
@@ -46,6 +54,7 @@ export class ListingSummaryResponseDto {
   minPrice: string | null;
   maxPrice: string | null;
   currencyCode: Currency | null;
+  categoryId: string | null;
   isNegotiable: boolean;
 
   private constructor(summary: ListingSummary) {
@@ -57,6 +66,7 @@ export class ListingSummaryResponseDto {
     this.minPrice = summary.minPrice?.toString() ?? null;
     this.maxPrice = summary.maxPrice?.toString() ?? null;
     this.currencyCode = summary.currencyCode;
+    this.categoryId = summary.categoryId;
     this.isNegotiable = summary.isNegotiable;
   }
 

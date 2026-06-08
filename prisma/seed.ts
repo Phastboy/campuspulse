@@ -183,7 +183,7 @@ async function main() {
   console.log("\n🌱 Seeding category taxonomy...");
 
   for (const root of taxonomy) {
-    const rootRecord = await (prisma as any).category.upsert({
+    const rootRecord = await prisma.category.upsert({
       where: { slug: root.slug },
       update: { name: root.name, description: root.description ?? null, order: root.order },
       create: {
@@ -198,7 +198,7 @@ async function main() {
     console.log(`  ✅ Root: ${root.name}`);
 
     for (const leaf of root.children) {
-      await (prisma as any).category.upsert({
+      await prisma.category.upsert({
         where: { slug: leaf.slug },
         update: { name: leaf.name, description: leaf.description ?? null, order: leaf.order },
         create: {
@@ -241,6 +241,86 @@ async function main() {
   }
 
   console.log("\n✅ Tags seeded successfully.");
+
+  // -------------------------------------------------------------------------
+  // Location, Business, Listing, Review, StoreTour
+  // -------------------------------------------------------------------------
+  console.log("\n🌱 Seeding dummy business data...");
+
+  // 1. Location (Using PostGIS raw query since Prisma doesn't natively support geometry create)
+  const locationId = "test-location-1";
+  await prisma.$executeRaw`
+    INSERT INTO "Location" ("id", "name", "coordinates")
+    VALUES (${locationId}, 'Lagos Tech Hub', ST_SetSRID(ST_MakePoint(3.3792, 6.5244), 4326))
+    ON CONFLICT ("id") DO NOTHING;
+  `;
+
+  // 2. Business Profile
+  const business = await prisma.businessProfile.upsert({
+    where: { slug: "sample-tech-store" },
+    update: {},
+    create: {
+      ownerId: account.user!.id,
+      name: "Sample Tech Store",
+      slug: "sample-tech-store",
+      isPublic: true,
+      description: "A great tech store",
+      locationId,
+      hours: {
+        create: [
+          { day: "MON", openTime: "09:00", closeTime: "17:00" },
+          { day: "TUE", openTime: "09:00", closeTime: "17:00" },
+        ],
+      },
+    },
+  });
+
+  // 3. Listing
+  const listing = await prisma.listing.upsert({
+    where: { businessProfileId_slug: { businessProfileId: business.id, slug: "macbook-pro" } },
+    update: {},
+    create: {
+      businessProfileId: business.id,
+      title: "MacBook Pro M3",
+      slug: "macbook-pro",
+      description: "Latest Apple Silicon",
+      status: "PUBLISHED",
+      minPrice: 2000,
+      currencyCode: "USD",
+    },
+  });
+
+  // 4. Review
+  await prisma.review.upsert({
+    where: { listingId_reviewerId: { listingId: listing.id, reviewerId: account.user!.id } },
+    update: {},
+    create: {
+      listingId: listing.id,
+      reviewerId: account.user!.id,
+      rating: 5,
+      comment: "Excellent machine!",
+    },
+  });
+
+  // 5. Store Tour
+  await prisma.storeTour.upsert({
+    where: { id: "test-tour-1" },
+    update: {},
+    create: {
+      id: "test-tour-1",
+      businessProfileId: business.id,
+      createdById: account.user!.id,
+      title: "Store Walkthrough",
+      summary: "A quick look at our displays",
+      visitDate: new Date(),
+      status: "PUBLISHED",
+      highlights: {
+        create: [{ value: "MacBook display" }, { value: "Accessories wall" }],
+      },
+    },
+  });
+
+  console.log("✅ Dummy business data seeded successfully.");
 }
 
 main()
