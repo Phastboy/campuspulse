@@ -4,6 +4,7 @@ import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { RedisService } from '../../../../shared/redis/redis.service.js';
 import { MailQueueService } from '../../../../mail/mail-queue.service.js';
 import { CreateBusinessProfileUseCase } from './create-business-profile.use-case.js';
+import { IBusinessProfileRepository } from '../../domain/ports/business-profile.repository.port.js';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CreateBusinessProfileDto } from '../../api/dto/request.dto.js';
@@ -16,6 +17,7 @@ export class VerifyDraftAndPublishUseCase {
     private readonly createBusinessProfile: CreateBusinessProfileUseCase,
     private readonly mailQueueService: MailQueueService,
     private readonly configService: ConfigService,
+    private readonly repo: IBusinessProfileRepository,
   ) {}
 
   async execute(draftId: string, ownerId: string, otp: string) {
@@ -51,11 +53,17 @@ export class VerifyDraftAndPublishUseCase {
       ownerId,
     });
 
-    // Update the profile to mark email as verified (since it was just verified)
+    // Update the profile to mark email as verified and make the profile public (published)
     await this.prisma.businessProfile.update({
       where: { id: profile.id },
-      data: { isEmailVerified: true },
+      data: { isEmailVerified: true, isPublic: true },
     });
+
+    // Retrieve the newly updated and public profile view
+    const publishedProfile = await this.repo.findById(profile.id);
+    if (!publishedProfile) {
+      throw new NotFoundException('Published business profile not found.');
+    }
 
     // Delete the draft
     await this.prisma.businessProfileDraft.delete({
@@ -70,16 +78,16 @@ export class VerifyDraftAndPublishUseCase {
 
     // Send "Next Steps" email urging them to list offers
     await this.mailQueueService.enqueueMail({
-      to: profile.email,
+      to: publishedProfile.email,
       subject: 'Your Business Profile is Live on Pulse!',
       template: 'business-published',
       context: {
-        businessName: profile.name,
-        storefront_url: `${frontendUrl}/b/${profile.slug}`,
+        businessName: publishedProfile.name,
+        storefront_url: `${frontendUrl}/b/${publishedProfile.slug}`,
         action_url: `${frontendUrl}/dashboard/listings/new`,
       },
     });
 
-    return profile;
+    return publishedProfile;
   }
 }
