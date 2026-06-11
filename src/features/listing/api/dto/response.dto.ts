@@ -16,6 +16,7 @@ export class ListingResponseDto {
   currencyCode: string | null;
   isNegotiable: boolean;
   @ApiPropertyOptional({ nullable: true }) categoryId: string | null;
+  @ApiPropertyOptional() attributes: Record<string, unknown> | null;
   @ApiProperty() createdAt: string;
   @ApiProperty() updatedAt: string;
   @ApiPropertyOptional() reviews?: any[];
@@ -32,12 +33,15 @@ export class ListingResponseDto {
     this.currencyCode = listing.price.currencyCode;
     this.isNegotiable = listing.price.isNegotiable;
     this.categoryId = listing.categoryId;
+    this.attributes = listing.attributes;
     this.createdAt = listing.createdAt.toISOString();
     this.updatedAt = listing.updatedAt.toISOString();
-    this.reviews = listing.reviews?.map((r) => ({
-      ...r,
-      createdAt: r.createdAt.toISOString(),
-    }));
+    if (listing.reviews !== undefined) {
+      this.reviews = listing.reviews.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+      }));
+    }
   }
 
   static from(listing: Listing): ListingResponseDto {
@@ -57,6 +61,7 @@ export class ListingSummaryResponseDto {
   categoryId: string | null;
   isNegotiable: boolean;
   @ApiPropertyOptional() coverUrl?: string;
+  @ApiPropertyOptional() attributes?: Record<string, unknown> | null;
 
   private constructor(summary: ListingSummary) {
     this.id = summary.id;
@@ -69,7 +74,12 @@ export class ListingSummaryResponseDto {
     this.currencyCode = summary.currencyCode;
     this.categoryId = summary.categoryId;
     this.isNegotiable = summary.isNegotiable;
-    this.coverUrl = summary.coverUrl;
+    if (summary.coverUrl !== undefined) {
+      this.coverUrl = summary.coverUrl;
+    }
+    if (summary.attributes !== undefined) {
+      this.attributes = summary.attributes;
+    }
   }
 
   static from(summary: ListingSummary): ListingSummaryResponseDto {

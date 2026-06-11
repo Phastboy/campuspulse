@@ -38,15 +38,18 @@ function toDomain(raw: PrismaListingExtended): Listing {
       currencyCode: raw.currencyCode,
       isNegotiable: raw.isNegotiable,
     },
+    attributes: raw.attributes ? (raw.attributes as Record<string, unknown>) : null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
-    reviews: raw.reviews?.map((r) => ({
-      id: r.id,
-      reviewerId: r.reviewerId,
-      rating: r.rating,
-      comment: r.comment,
-      createdAt: r.createdAt,
-    })),
+    ...(raw.reviews && {
+      reviews: raw.reviews.map((r) => ({
+        id: r.id,
+        reviewerId: r.reviewerId,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+      })),
+    }),
   };
 }
 
@@ -64,10 +67,11 @@ export class PrismaListingRepository extends IListingRepository {
         categoryId: input.categoryId,
         slug,
         description: input.description ?? null,
-        minPrice: input.price?.minPrice ?? null,
-        maxPrice: input.price?.maxPrice ?? null,
-        currencyCode: input.price?.currencyCode ?? null,
-        isNegotiable: input.price?.isNegotiable ?? false,
+        ...(input.price?.minPrice !== undefined && { minPrice: input.price.minPrice }),
+        ...(input.price?.maxPrice !== undefined && { maxPrice: input.price.maxPrice }),
+        ...(input.price?.currencyCode !== undefined && { currencyCode: input.price.currencyCode }),
+        ...(input.price?.isNegotiable !== undefined && { isNegotiable: input.price.isNegotiable }),
+        ...(input.attributes !== undefined && { attributes: input.attributes as Prisma.InputJsonValue }),
       },
     });
     return toDomain(raw);
@@ -117,6 +121,9 @@ export class PrismaListingRepository extends IListingRepository {
           maxPrice: input.price.maxPrice ?? null,
           currencyCode: input.price.currencyCode ?? null,
           isNegotiable: input.price.isNegotiable,
+        }),
+        ...(input.attributes !== undefined && {
+          attributes: input.attributes === null ? Prisma.DbNull : (input.attributes as Prisma.InputJsonValue),
         }),
       },
     });
@@ -185,6 +192,7 @@ export class PrismaListingRepository extends IListingRepository {
         currencyCode: r.currencyCode ?? null,
         categoryId: (r as { categoryId?: string | null }).categoryId ?? null,
         coverUrl: (r as any).media?.[0]?.url ?? undefined,
+        attributes: r.attributes ? (r.attributes as Record<string, unknown>) : null,
       })),
       total,
       page: input.page,

@@ -21,9 +21,9 @@ export const CloudinaryProvider: Provider = {
     });
 
     cloudinary.config({
-      cloud_name: cloudName,
-      api_key: apiKey,
-      api_secret: apiSecret,
+      ...(cloudName !== undefined && { cloud_name: cloudName }),
+      ...(apiKey !== undefined && { api_key: apiKey }),
+      ...(apiSecret !== undefined && { api_secret: apiSecret }),
     });
 
     return cloudinary;

@@ -238,6 +238,9 @@ model Listing {
   currencyCode String?
   isNegotiable Boolean  @default(false)
 
+  // Dynamic attributes corresponding to CategoryAttribute schema
+  attributes   Json?    @db.JsonB
+
   // Offering type — leaf category only (see Category constraints)
   categoryId String?
   category   Category? @relation("ListingCategory", fields: [categoryId], references: [id])
@@ -338,11 +341,42 @@ model Category {
 
   businessProfiles BusinessProfile[] @relation("BusinessProfileCategory")
   listings         Listing[]         @relation("ListingCategory")
+  attributes       CategoryAttribute[]
 
   @@index([parentId])
   @@index([slug])
   @@index([isActive])
   @@map("categories")
+}
+
+// ============================================
+// Category Attributes
+// ============================================
+
+enum AttributeType {
+  STRING
+  NUMBER
+  BOOLEAN
+  SELECT
+}
+
+model CategoryAttribute {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  key          String        // e.g., "capacity", "condition"
+  label        String        // e.g., "Guest Capacity", "Item Condition"
+  type         AttributeType
+  isRequired   Boolean       @default(false)
+  displayOrder Int           @default(0)
+
+  // For SELECT: flat array e.g., ["New", "Used", "Refurbished"]
+  options      Json?
+
+  @@unique([categoryId, key])
+  @@index([categoryId])
+  @@map("category_attributes")
 }
 
 // ============================================

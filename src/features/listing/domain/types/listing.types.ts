@@ -26,6 +26,7 @@ export interface CreateListingInput {
   readonly categoryId: string;
   readonly description?: string;
   readonly price?: ListingPriceInput;
+  readonly attributes?: Record<string, unknown>;
 }
 
 /**
@@ -38,6 +39,7 @@ export interface UpdateListingInput {
   readonly categoryId?: string;
   readonly description?: string;
   readonly price?: ListingPriceInput;
+  readonly attributes?: Record<string, unknown>;
 }
 
 /**
@@ -68,6 +70,7 @@ export interface ListingView {
   readonly maxPrice: number | null;
   readonly currencyCode: string | null;
   readonly categoryId: string | null;
+  readonly attributes: Record<string, unknown> | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly reviews?: {
@@ -95,6 +98,7 @@ export interface ListingSummary {
   readonly isNegotiable: boolean;
   readonly categoryId: string | null;
   readonly coverUrl?: string;
+  readonly attributes?: Record<string, unknown> | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -82,7 +82,9 @@ export class BusinessSummaryResponseDto {
     this.latitude = summary.latitude;
     this.longitude = summary.longitude;
     this.categoryId = summary.categoryId;
-    this.distanceKm = summary.distanceKm;
+    if (summary.distanceKm !== undefined) {
+      this.distanceKm = summary.distanceKm;
+    }
   }
 
   static from(summary: BusinessSummary): BusinessSummaryResponseDto {

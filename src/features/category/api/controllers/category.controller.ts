@@ -16,9 +16,12 @@ import { DeactivateCategoryUseCase } from '../../application/use-cases/deactivat
 import { GetCategoryUseCase } from '../../application/use-cases/get-category.use-case.js';
 import { GetCategoryTreeUseCase } from '../../application/use-cases/get-category-tree.use-case.js';
 import { ICategoryRepository } from '../../domain/ports/category.repository.port.js';
-import { CreateCategoryDto, UpdateCategoryDto } from '../dto/request.dto.js';
+import { CreateCategoryDto, UpdateCategoryDto, CreateCategoryAttributeDto, UpdateCategoryAttributeDto } from '../dto/request.dto.js';
 import { CategoryResponseDto, CategoryTreeNodeDto } from '../dto/response.dto.js';
 import { toCategoryView } from '../../domain/types/category.types.js';
+import { CreateCategoryAttributeUseCase } from '../../application/use-cases/create-category-attribute.use-case.js';
+import { UpdateCategoryAttributeUseCase } from '../../application/use-cases/update-category-attribute.use-case.js';
+import { DeleteCategoryAttributeUseCase } from '../../application/use-cases/delete-category-attribute.use-case.js';
 
 /**
  * Admin-only category management endpoints.
@@ -31,6 +34,9 @@ import { toCategoryView } from '../../domain/types/category.types.js';
  * POST   /admin/categories/:id/deactivate — soft-disable
  * POST   /admin/categories/:id/activate   — re-enable
  * DELETE /admin/categories/:id       — hard delete (only if no assignments)
+ * POST   /admin/categories/:id/attributes — add attribute
+ * PATCH  /admin/categories/:id/attributes/:attrId — update attribute
+ * DELETE /admin/categories/:id/attributes/:attrId — delete attribute
  */
 @Controller('admin/categories')
 @AdminGuard()
@@ -42,6 +48,9 @@ export class CategoryController {
     private readonly getCategory: GetCategoryUseCase,
     private readonly getCategoryTree: GetCategoryTreeUseCase,
     private readonly categoryRepo: ICategoryRepository,
+    private readonly createAttribute: CreateCategoryAttributeUseCase,
+    private readonly updateAttribute: UpdateCategoryAttributeUseCase,
+    private readonly deleteAttribute: DeleteCategoryAttributeUseCase,
   ) {}
 
   @Get()
@@ -107,6 +116,36 @@ export class CategoryController {
       }
     }
     await this.categoryRepo.delete(existing.id);
+    return { deleted: true };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Category Attributes
+  // ---------------------------------------------------------------------------
+
+  @Post(':id/attributes')
+  async addAttribute(
+    @Param('id') id: string,
+    @Body() dto: CreateCategoryAttributeDto,
+  ) {
+    return this.createAttribute.execute(id, dto);
+  }
+
+  @Patch(':id/attributes/:attrId')
+  async editAttribute(
+    @Param('id') id: string,
+    @Param('attrId') attrId: string,
+    @Body() dto: UpdateCategoryAttributeDto,
+  ) {
+    return this.updateAttribute.execute(id, attrId, dto);
+  }
+
+  @Delete(':id/attributes/:attrId')
+  async removeAttribute(
+    @Param('id') id: string,
+    @Param('attrId') attrId: string,
+  ) {
+    await this.deleteAttribute.execute(id, attrId);
     return { deleted: true };
   }
 }

@@ -9,6 +9,7 @@ import {
   MinLength,
   ValidateIf,
   ValidateNested,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -54,6 +55,10 @@ export class CreateListingDto {
   @ValidateNested()
   @Type(() => ListingPriceDto)
   price?: ListingPriceDto;
+
+  @IsOptional()
+  @IsObject()
+  attributes?: Record<string, unknown>;
 }
 
 export class UpdateListingDto {
@@ -76,6 +81,10 @@ export class UpdateListingDto {
   @ValidateNested()
   @Type(() => ListingPriceDto)
   price?: ListingPriceDto;
+
+  @IsOptional()
+  @IsObject()
+  attributes?: Record<string, unknown>;
 }
 
 export class TransitionListingStatusDto {

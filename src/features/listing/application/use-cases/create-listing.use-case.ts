@@ -4,12 +4,14 @@ import { IListingRepository } from '../../domain/ports/listing.repository.port.j
 import { CreateListingInput } from '../../domain/types/listing.types.js';
 import { Listing } from '../../domain/types/listing.entity.js';
 import { ICategoryRepository } from '../../../category/domain/ports/category.repository.port.js';
+import { ValidateListingAttributesService } from '../services/validate-listing-attributes.service.js';
 
 @Injectable()
 export class CreateListingUseCase {
   constructor(
     private readonly repo: IListingRepository,
     private readonly categoryRepo: ICategoryRepository,
+    private readonly attributeValidator: ValidateListingAttributesService,
   ) {}
 
   async execute(input: CreateListingInput): Promise<Listing> {
@@ -25,6 +27,10 @@ export class CreateListingUseCase {
 
     if (!category.parentId) {
       throw new BadRequestException('Listings must be assigned to a specific leaf category, not a root category.');
+    }
+
+    if (input.attributes) {
+      await this.attributeValidator.validate(input.categoryId, input.attributes);
     }
 
     const slug = await this.deriveUniqueSlug(input.businessProfileId, input.title);

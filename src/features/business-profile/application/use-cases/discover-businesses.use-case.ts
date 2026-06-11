@@ -22,12 +22,12 @@ export class DiscoverBusinessesUseCase {
     radius?: string;
   }): Promise<PaginatedBusinessSummaries> {
     const input: DiscoverBusinessesInput = {
-      search: raw.search,
       page: this.#parsePage(raw.page),
       limit: this.#parseLimit(raw.limit),
-      lat: raw.lat ? parseFloat(raw.lat) : undefined,
-      lng: raw.lng ? parseFloat(raw.lng) : undefined,
-      radiusInKm: raw.radius ? parseFloat(raw.radius) : undefined,
+      ...(raw.search !== undefined && { search: raw.search }),
+      ...(raw.lat !== undefined && { lat: parseFloat(raw.lat) }),
+      ...(raw.lng !== undefined && { lng: parseFloat(raw.lng) }),
+      ...(raw.radius !== undefined && { radiusInKm: parseFloat(raw.radius) }),
     };
 
     return this.repo.discover(input);

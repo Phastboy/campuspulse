@@ -24,16 +24,19 @@ export class DiscoverListingsUseCase {
     page?: string;
     limit?: string;
   }): Promise<PaginatedListingSummaries> {
+    const minPrice = this.#parseNumber(raw.minPrice);
+    const maxPrice = this.#parseNumber(raw.maxPrice);
+    const isNegotiable = raw.isNegotiable === 'true' ? true : raw.isNegotiable === 'false' ? false : undefined;
+
     const input: DiscoverListingsInput = {
-      businessProfileId: raw.businessProfileId,
-      currencyCode: raw.currencyCode,
-      minPrice: this.#parseNumber(raw.minPrice),
-      maxPrice: this.#parseNumber(raw.maxPrice),
-      isNegotiable:
-        raw.isNegotiable === 'true' ? true : raw.isNegotiable === 'false' ? false : undefined,
-      search: raw.search,
       page: this.#parsePage(raw.page),
       limit: this.#parseLimit(raw.limit),
+      ...(raw.businessProfileId !== undefined && { businessProfileId: raw.businessProfileId }),
+      ...(raw.currencyCode !== undefined && { currencyCode: raw.currencyCode }),
+      ...(minPrice !== undefined && { minPrice }),
+      ...(maxPrice !== undefined && { maxPrice }),
+      ...(isNegotiable !== undefined && { isNegotiable }),
+      ...(raw.search !== undefined && { search: raw.search }),
     };
 
     return this.repo.discover(input);

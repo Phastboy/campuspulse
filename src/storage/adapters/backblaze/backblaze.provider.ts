@@ -57,10 +57,12 @@ export const BackblazeConfigProvider: Provider = {
       endpoint = `https://${endpoint}`;
     }
 
+    const publicUrlBase = configService.get<string>('B2_PUBLIC_URL_BASE');
+
     return {
       bucketName: configService.get<string>('B2_BUCKET_NAME', ''),
       endpoint,
-      publicUrlBase: configService.get<string>('B2_PUBLIC_URL_BASE'),
+      ...(publicUrlBase !== undefined && { publicUrlBase }),
     };
   },
 };

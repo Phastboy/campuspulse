@@ -127,9 +127,11 @@ export class PrismaReviewRepository extends IReviewRepository {
     const hasNextPage = rows.length > limit;
     const items = hasNextPage ? rows.slice(0, limit) : rows;
 
+    const lastItem = items[items.length - 1];
+
     return {
       items: items.map(toWithMedia),
-      nextCursor: hasNextPage ? items[items.length - 1].id : null,
+      nextCursor: hasNextPage && lastItem ? lastItem.id : null,
     };
   }
 

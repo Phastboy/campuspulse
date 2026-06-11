@@ -26,7 +26,7 @@ export class RequestDraftVerificationUseCase {
     }
 
     const draftData = draft.data as Record<string, any>;
-    const email = draftData.email;
+    const email = draftData['email'];
 
     if (!email || typeof email !== 'string') {
       throw new BadRequestException('An email address must be provided in the draft data to request verification.');

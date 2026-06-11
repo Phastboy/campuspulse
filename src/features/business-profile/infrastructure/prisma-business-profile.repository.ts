@@ -82,19 +82,23 @@ function toDomain(raw: HydratedProfile): BusinessProfileView {
     categoryId: raw.categoryId ?? null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
-    operatingHours: raw.hours?.map((h) => ({
-      id: h.id,
-      businessProfileId: h.businessProfileId,
-      day: h.day as DayOfWeek,
-      openTime: h.openTime,
-      closeTime: h.closeTime,
-      isClosed: h.isClosed,
-    })),
-    tags: raw.tags?.map((t) => ({
-      id: t.tag.id,
-      name: t.tag.name,
-      slug: t.tag.slug,
-    })),
+    ...(raw.hours && {
+      operatingHours: raw.hours.map((h) => ({
+        id: h.id,
+        businessProfileId: h.businessProfileId,
+        day: h.day as DayOfWeek,
+        openTime: h.openTime,
+        closeTime: h.closeTime,
+        isClosed: h.isClosed,
+      })),
+    }),
+    ...(raw.tags && {
+      tags: raw.tags.map((t) => ({
+        id: t.tag.id,
+        name: t.tag.name,
+        slug: t.tag.slug,
+      })),
+    }),
   };
 }
 
@@ -157,18 +161,18 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
         name: input.name,
         slug,
         businessType: input.businessType,
-        description: input.description,
-        websiteUrl: input.websiteUrl,
+        ...(input.description !== undefined && { description: input.description }),
+        ...(input.websiteUrl !== undefined && { websiteUrl: input.websiteUrl }),
         phoneNumber: input.phoneNumber,
         whatsapp: input.whatsapp,
         email: input.email,
-        locationId,
+        ...(locationId !== undefined && { locationId }),
       },
       include: { geoEntity: true },
     });
 
-    const [hydrated] = await this.hydrate([raw]);
-    return toDomain(hydrated);
+    const hydratedArray = await this.hydrate([raw]);
+    return toDomain(hydratedArray[0]!);
   }
 
   async findById(id: string): Promise<BusinessProfileView | null> {
@@ -177,8 +181,8 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
       include: { hours: true, tags: { include: { tag: true } }, geoEntity: true },
     });
     if (!raw) return null;
-    const [hydrated] = await this.hydrate([raw]);
-    return toDomain(hydrated);
+    const hydratedArray = await this.hydrate([raw]);
+    return toDomain(hydratedArray[0]!);
   }
 
   async findBySlug(slug: string): Promise<BusinessProfileView | null> {
@@ -187,8 +191,8 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
       include: { hours: true, tags: { include: { tag: true } }, geoEntity: true },
     });
     if (!raw) return null;
-    const [hydrated] = await this.hydrate([raw]);
-    return toDomain(hydrated);
+    const hydratedArray = await this.hydrate([raw]);
+    return toDomain(hydratedArray[0]!);
   }
 
   async isSlugTaken(slug: string): Promise<boolean> {
@@ -260,8 +264,8 @@ export class PrismaBusinessProfileRepository extends IBusinessProfileRepository 
       include: { hours: true, tags: { include: { tag: true } }, geoEntity: true },
     });
 
-    const [hydrated] = await this.hydrate([raw]);
-    return toDomain(hydrated);
+    const hydratedArray = await this.hydrate([raw]);
+    return toDomain(hydratedArray[0]!);
   }
 
   async delete(id: string): Promise<void> {

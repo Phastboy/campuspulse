@@ -39,8 +39,8 @@ export class StorageModule {
     const logger = new Logger('StorageModule');
 
     // Evaluate the environment before DI resolves
-    const activeProvider = process.env.STORAGE_PROVIDER?.toLowerCase();
-    const isProduction = process.env.NODE_ENV === 'production';
+    const activeProvider = process.env['STORAGE_PROVIDER']?.toLowerCase();
+    const isProduction = process.env['NODE_ENV'] === 'production';
 
     // The ImageStorageService is always required
     const providers: Provider[] = [MediaStorageService];

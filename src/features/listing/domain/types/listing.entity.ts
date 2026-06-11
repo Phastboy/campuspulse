@@ -61,6 +61,12 @@ export interface Listing {
   readonly categoryId: string | null;
 
   // ---------------------------------------------------------------------------
+  // Dynamic Attributes
+  // ---------------------------------------------------------------------------
+
+  readonly attributes: Record<string, unknown> | null;
+
+  // ---------------------------------------------------------------------------
   // Price signal
   //
   // Stored in smallest currency unit to avoid floating point errors.

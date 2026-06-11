@@ -12,7 +12,6 @@ import {
   Put,
 } from '@nestjs/common';
 import { CurrentIdentity, type RequestIdentity } from '@odysseon/whoami-adapter-nestjs';
-import { CreateBusinessProfileUseCase } from '../../application/use-cases/create-business-profile.use-case.js';
 import { DeleteBusinessProfileUseCase } from '../../application/use-cases/delete-business-profile.use-case.js';
 import { GetMyBusinessProfilesUseCase } from '../../application/use-cases/get-my-business-profiles.use-case.js';
 import { UpdateBusinessProfileUseCase } from '../../application/use-cases/update-business-profile.use-case.js';

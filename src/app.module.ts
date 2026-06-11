@@ -28,13 +28,18 @@ import { RedisModule } from './shared/redis/redis.module.js';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST'),
-          port: configService.get<number>('REDIS_PORT'),
-          password: configService.get<string>('REDIS_PASSWORD'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST');
+        const port = configService.get<number>('REDIS_PORT');
+        const password = configService.get<string>('REDIS_PASSWORD');
+        return {
+          connection: {
+            ...(host ? { host } : {}),
+            ...(port ? { port } : {}),
+            ...(password ? { password } : {}),
+          },
+        };
+      },
     }),
     PrismaModule,
     AuthModule,

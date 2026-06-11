@@ -1,4 +1,5 @@
 export type { Category } from './types/category.entity.js';
+export { AttributeType, type CategoryAttribute } from './types/category-attribute.entity.js';
 export type {
   CategoryView,
   CategoryTreeNode,

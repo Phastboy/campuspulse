@@ -61,7 +61,7 @@ export class AddMediaUseCase {
 
     if (isSingleton) {
       const existing = await this.mediaRepo.findByRole(input.ownerKey, input.ownerId, input.role);
-      if (existing.length > 0) {
+      if (existing.length > 0 && existing[0]) {
         replacedId = existing[0].id;
         replacedFileId = existing[0].fileId;
       }

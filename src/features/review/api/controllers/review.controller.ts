@@ -48,7 +48,7 @@ export class ReviewController {
       listingId,
       reviewerId,
       rating: dto.rating,
-      comment: dto.comment,
+      ...(dto.comment !== undefined && { comment: dto.comment }),
     });
     return ReviewResponseDto.from(review);
   }
@@ -65,8 +65,8 @@ export class ReviewController {
   ): Promise<ReviewPageDto> {
     const page = await this.getListingReviews.execute({
       listingId,
-      cursor: query.cursor,
-      limit: query.limit,
+      ...(query.cursor !== undefined && { cursor: query.cursor }),
+      ...(query.limit !== undefined && { limit: query.limit }),
     });
     return ReviewPageDto.from(page);
   }
@@ -83,8 +83,8 @@ export class ReviewController {
   ): Promise<ReviewResponseDto> {
     const requesterId = await this.resolveUserId(identity.accountId);
     const review = await this.updateReview.execute(id, requesterId, {
-      rating: dto.rating,
-      comment: dto.comment,
+      ...(dto.rating !== undefined && { rating: dto.rating }),
+      ...(dto.comment !== undefined && { comment: dto.comment }),
     });
     return ReviewResponseDto.from(review);
   }

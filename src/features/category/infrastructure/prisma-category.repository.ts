@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../../../generated/prisma/client.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { ICategoryRepository } from '../domain/ports/category.repository.port.js';
 import { Category } from '../domain/types/category.entity.js';
@@ -162,5 +163,69 @@ export class PrismaCategoryRepository implements ICategoryRepository {
 
   async delete(id: string): Promise<void> {
     await this.prisma.category.delete({ where: { id } });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Category Attributes
+  // ---------------------------------------------------------------------------
+
+  async findAttributesByCategoryId(categoryId: string): Promise<import('../domain/types/category-attribute.entity.js').CategoryAttribute[]> {
+    const rows = await this.prisma.categoryAttribute.findMany({
+      where: { categoryId },
+      orderBy: { displayOrder: 'asc' },
+    });
+    
+    return rows.map(r => ({
+      ...r,
+      type: r.type as import('../domain/types/category-attribute.entity.js').AttributeType,
+      options: r.options ? (r.options as string[]) : null,
+    }));
+  }
+
+  async createAttribute(
+    input: import('../domain/types/category.types.js').CreateCategoryAttributeInput & { categoryId: string }
+  ): Promise<import('../domain/types/category-attribute.entity.js').CategoryAttribute> {
+    const raw = await this.prisma.categoryAttribute.create({
+      data: {
+        categoryId: input.categoryId,
+        key: input.key,
+        label: input.label,
+        type: input.type,
+        isRequired: input.isRequired ?? false,
+        displayOrder: input.displayOrder ?? 0,
+        options: input.options ? input.options : Prisma.DbNull,
+      },
+    });
+
+    return {
+      ...raw,
+      type: raw.type as import('../domain/types/category-attribute.entity.js').AttributeType,
+      options: raw.options ? (raw.options as string[]) : null,
+    };
+  }
+
+  async updateAttribute(
+    id: string,
+    input: import('../domain/types/category.types.js').UpdateCategoryAttributeInput
+  ): Promise<import('../domain/types/category-attribute.entity.js').CategoryAttribute> {
+    const raw = await this.prisma.categoryAttribute.update({
+      where: { id },
+      data: {
+        ...(input.label !== undefined && { label: input.label }),
+        ...(input.isRequired !== undefined && { isRequired: input.isRequired }),
+        ...(input.displayOrder !== undefined && { displayOrder: input.displayOrder }),
+        ...(input.options !== undefined && { options: input.options === null ? Prisma.DbNull : input.options }),
+      },
+    });
+
+    return {
+      ...raw,
+      type: raw.type as import('../domain/types/category-attribute.entity.js').AttributeType,
+      options: raw.options ? (raw.options as string[]) : null,
+    };
+  }
+
+  async deleteAttribute(id: string): Promise<void> {
+    await this.prisma.categoryAttribute.delete({ where: { id } });
   }
 }

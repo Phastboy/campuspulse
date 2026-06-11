@@ -49,9 +49,9 @@ export class StoreTourController {
     const tour = await this.createStoreTour.execute({
       businessProfileId,
       title: dto.title,
-      summary: dto.summary,
+      ...(dto.summary !== undefined && { summary: dto.summary }),
       visitDate: new Date(dto.visitDate),
-      highlights: dto.highlights,
+      ...(dto.highlights !== undefined && { highlights: dto.highlights }),
       createdById,
     });
     return StoreTourResponseDto.from(tour);
@@ -69,7 +69,7 @@ export class StoreTourController {
     const limitNum = parseInt(limit ?? '20', 10);
     const paginated = await this.getBusinessStoreTours.execute({
       businessProfileId,
-      status,
+      ...(status !== undefined && { status }),
       page: isNaN(pageNum) ? 1 : pageNum,
       limit: isNaN(limitNum) ? 20 : limitNum,
     });
@@ -90,11 +90,11 @@ export class StoreTourController {
     @Body() dto: UpdateStoreTourDto,
   ): Promise<StoreTourResponseDto> {
     const tour = await this.updateStoreTour.execute(id, {
-      title: dto.title,
-      summary: dto.summary,
-      visitDate: dto.visitDate ? new Date(dto.visitDate) : undefined,
-      highlights: dto.highlights,
-      status: dto.status,
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.summary !== undefined && { summary: dto.summary }),
+      ...(dto.visitDate !== undefined && { visitDate: new Date(dto.visitDate) }),
+      ...(dto.highlights !== undefined && { highlights: dto.highlights }),
+      ...(dto.status !== undefined && { status: dto.status }),
     });
     return StoreTourResponseDto.from(tour);
   }
