@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { CreateBusinessDraftUseCase } from './application/use-cases/create-business-draft.use-case.js';
+import { RequestDraftVerificationUseCase } from './application/use-cases/request-draft-verification.use-case.js';
+import { VerifyDraftAndPublishUseCase } from './application/use-cases/verify-draft-and-publish.use-case.js';
 import { CreateBusinessProfileUseCase } from './application/use-cases/create-business-profile.use-case.js';
 import { DeleteBusinessProfileUseCase } from './application/use-cases/delete-business-profile.use-case.js';
 import { DiscoverBusinessesUseCase } from './application/use-cases/discover-businesses.use-case.js';
@@ -15,11 +18,17 @@ import { PrismaBusinessProfileRepository } from './infrastructure/prisma-busines
 import { ITagRepository } from './domain/ports/tag.repository.port.js';
 import { PrismaTagRepository } from './infrastructure/prisma-tag.repository.js';
 
+import { MailModule } from '../../mail/mail.module.js';
+
 @Module({
+  imports: [MailModule],
   controllers: [PublicBusinessProfileController, BusinessProfileController],
   providers: [
     { provide: IBusinessProfileRepository, useClass: PrismaBusinessProfileRepository },
     { provide: ITagRepository, useClass: PrismaTagRepository },
+    CreateBusinessDraftUseCase,
+    RequestDraftVerificationUseCase,
+    VerifyDraftAndPublishUseCase,
     CreateBusinessProfileUseCase,
     UpdateBusinessProfileUseCase,
     DeleteBusinessProfileUseCase,

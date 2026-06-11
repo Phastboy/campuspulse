@@ -16,6 +16,9 @@ import { CreateBusinessProfileUseCase } from '../../application/use-cases/create
 import { DeleteBusinessProfileUseCase } from '../../application/use-cases/delete-business-profile.use-case.js';
 import { GetMyBusinessProfilesUseCase } from '../../application/use-cases/get-my-business-profiles.use-case.js';
 import { UpdateBusinessProfileUseCase } from '../../application/use-cases/update-business-profile.use-case.js';
+import { CreateBusinessDraftUseCase } from '../../application/use-cases/create-business-draft.use-case.js';
+import { RequestDraftVerificationUseCase } from '../../application/use-cases/request-draft-verification.use-case.js';
+import { VerifyDraftAndPublishUseCase } from '../../application/use-cases/verify-draft-and-publish.use-case.js';
 import { SetOperatingHoursUseCase } from '../../application/use-cases/set-operating-hours.use-case.js';
 import { SetBusinessTagsUseCase } from '../../application/use-cases/set-business-tags.use-case.js';
 import { CreateBusinessProfileDto, UpdateBusinessProfileDto } from '../dto/request.dto.js';
@@ -30,7 +33,9 @@ import { ApiTags } from '@nestjs/swagger';
 export class BusinessProfileController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly createBusinessProfile: CreateBusinessProfileUseCase,
+    private readonly createBusinessDraft: CreateBusinessDraftUseCase,
+    private readonly requestDraftVerification: RequestDraftVerificationUseCase,
+    private readonly verifyDraftAndPublish: VerifyDraftAndPublishUseCase,
     private readonly updateBusinessProfile: UpdateBusinessProfileUseCase,
     private readonly deleteBusinessProfile: DeleteBusinessProfileUseCase,
     private readonly getMyBusinessProfiles: GetMyBusinessProfilesUseCase,
@@ -38,18 +43,34 @@ export class BusinessProfileController {
     private readonly setBusinessTags: SetBusinessTagsUseCase,
   ) {}
 
-  @Post('businesses')
-  async create(
+  @Post('businesses/drafts')
+  async createDraft(
     @CurrentIdentity() identity: RequestIdentity,
     @Body() dto: CreateBusinessProfileDto,
+  ) {
+    const { id: userId } = await this.resolveUser(identity.accountId);
+    return await this.createBusinessDraft.execute(userId, dto as any);
+  }
+
+  @Post('businesses/drafts/:id/request-verification')
+  @HttpCode(HttpStatus.OK)
+  async requestVerification(
+    @CurrentIdentity() identity: RequestIdentity,
+    @Param('id') id: string,
+  ) {
+    const { id: userId } = await this.resolveUser(identity.accountId);
+    return await this.requestDraftVerification.execute(id, userId);
+  }
+
+  @Post('businesses/drafts/:id/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyDraft(
+    @CurrentIdentity() identity: RequestIdentity,
+    @Param('id') id: string,
+    @Body('otp') otp: string,
   ): Promise<BusinessProfileResponseDto> {
     const { id: userId } = await this.resolveUser(identity.accountId);
-
-    const profile = await this.createBusinessProfile.execute({
-      ...dto,
-      ownerId: userId,
-    });
-
+    const profile = await this.verifyDraftAndPublish.execute(id, userId, otp);
     return BusinessProfileResponseDto.from(profile);
   }
 

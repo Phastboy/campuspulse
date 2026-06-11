@@ -16,6 +16,7 @@ import { CategoryModule } from './features/category/category.module.js';
 import { ReviewModule } from './features/review/review.module.js';
 import { StoreTourModule } from './features/store-tour/store-tour.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { RedisModule } from './shared/redis/redis.module.js';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { MailModule } from './mail/mail.module.js';
     ReviewModule,
     StoreTourModule,
     MailModule,
+    RedisModule,
   ],
   controllers: [HealthController],
 })
