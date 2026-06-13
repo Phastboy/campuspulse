@@ -1,4 +1,13 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { BusinessType } from '../../../../../generated/prisma/client.js';
 
 export class CreateBusinessProfileDto {
   @IsString()
@@ -11,24 +20,35 @@ export class CreateBusinessProfileDto {
   @MaxLength(1000)
   description?: string;
 
-  @IsOptional()
   @IsString()
   @MaxLength(30)
-  phoneNumber?: string;
+  phoneNumber!: string;
 
-  @IsOptional()
   @IsString()
   @MaxLength(30)
-  whatsapp?: string;
+  whatsapp!: string;
 
-  @IsOptional()
   @IsEmail()
-  email?: string;
+  email!: string;
+
+  @IsEnum(BusinessType)
+  businessType!: BusinessType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  websiteUrl?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(200)
   location?: string;
+
+  @IsOptional()
+  latitude?: number;
+
+  @IsOptional()
+  longitude?: number;
 }
 
 export class UpdateBusinessProfileDto {
@@ -44,6 +64,15 @@ export class UpdateBusinessProfileDto {
   description?: string;
 
   @IsOptional()
+  @IsEnum(BusinessType)
+  businessType?: BusinessType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  websiteUrl?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(30)
   phoneNumber?: string;
@@ -61,6 +90,12 @@ export class UpdateBusinessProfileDto {
   @IsString()
   @MaxLength(200)
   location?: string;
+
+  @IsOptional()
+  latitude?: number;
+
+  @IsOptional()
+  longitude?: number;
 
   @IsOptional()
   @IsBoolean()
@@ -80,4 +115,16 @@ export class GetBusinessesQueryDto {
   @IsOptional()
   @IsString()
   limit?: string;
+
+  @IsOptional()
+  @IsString()
+  lat?: string;
+
+  @IsOptional()
+  @IsString()
+  lng?: string;
+
+  @IsOptional()
+  @IsString()
+  radius?: string;
 }

@@ -61,11 +61,17 @@ function detectMimeType(head: Buffer): string | undefined {
   return undefined;
 }
 
+import { PassThrough } from 'stream';
+
 /**
  * Accurately reads `n` bytes by accumulating chunks, resolving early if the stream ends.
- * It unshifts the exact bytes read back into the stream for downstream consumers.
+ * It returns the `head` buffer for inspection, and a `newStream` that combines the peeked
+ * data and the rest of the stream safely without using `unshift` on potentially ended streams.
  */
-async function peekStream(stream: Readable, n: number): Promise<Buffer> {
+async function peekStream(
+  stream: Readable,
+  n: number,
+): Promise<{ head: Buffer; newStream: Readable }> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let totalLength = 0;
@@ -74,6 +80,14 @@ async function peekStream(stream: Readable, n: number): Promise<Buffer> {
       stream.removeListener('readable', onReadable);
       stream.removeListener('end', onEnd);
       stream.removeListener('error', onError);
+    };
+
+    const finalize = (head: Buffer) => {
+      cleanup();
+      const pt = new PassThrough();
+      pt.write(head);
+      stream.pipe(pt);
+      resolve({ head, newStream: pt });
     };
 
     const onReadable = () => {
@@ -85,22 +99,27 @@ async function peekStream(stream: Readable, n: number): Promise<Buffer> {
       }
 
       if (totalLength >= n) {
-        cleanup();
         const fullBuffer = Buffer.concat(chunks);
-        stream.unshift(fullBuffer);
-        resolve(fullBuffer.subarray(0, n));
+        const head = fullBuffer.subarray(0, n);
+        const remainder = fullBuffer.subarray(n);
+
+        cleanup();
+        const pt = new PassThrough();
+        pt.write(head);
+        if (remainder.length > 0) pt.write(remainder);
+        stream.pipe(pt);
+
+        resolve({ head, newStream: pt });
       }
     };
 
     const onEnd = () => {
-      cleanup();
       if (totalLength === 0) {
+        cleanup();
         reject(new BadRequestException('File stream is empty.'));
         return;
       }
-      const fullBuffer = Buffer.concat(chunks);
-      stream.unshift(fullBuffer);
-      resolve(fullBuffer);
+      finalize(Buffer.concat(chunks));
     };
 
     const onError = (err: Error) => {
@@ -150,7 +169,7 @@ export class MediaStorageService {
       throw new BadRequestException(`${extension} is not a supported media format.`);
     }
 
-    const head = await peekStream(params.fileData, MAGIC_PEEK_BYTES);
+    const { head, newStream } = await peekStream(params.fileData, MAGIC_PEEK_BYTES);
 
     const mime = detectMimeType(head);
     if (!mime || !this.allowedMimeTypes.includes(mime)) {
@@ -161,6 +180,7 @@ export class MediaStorageService {
 
     return await this.storageProvider.upload({
       ...params,
+      fileData: newStream,
       fileName: safeFileName,
     });
   }

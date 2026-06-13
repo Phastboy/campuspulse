@@ -1,12 +1,13 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsNumber, IsString, IsOptional } from 'class-validator';
 
 export class MediaDto {
   @IsString()
   url!: string;
 
   @IsString()
-  publicId!: string;
+  fileId!: string;
 
+  @IsOptional()
   @IsNumber()
-  order!: number;
+  order?: number | null;
 }

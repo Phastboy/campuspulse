@@ -1,4 +1,3 @@
-import { Currency } from './currency.enum.js';
 import { ListingStatus } from './listing-status.enum.js';
 
 // ---------------------------------------------------------------------------
@@ -8,7 +7,7 @@ import { ListingStatus } from './listing-status.enum.js';
 export interface ListingPriceInput {
   readonly minPrice?: number;
   readonly maxPrice?: number;
-  readonly currency?: Currency;
+  readonly currencyCode?: string;
   readonly isNegotiable: boolean;
 }
 
@@ -24,8 +23,10 @@ export interface ListingPriceInput {
 export interface CreateListingInput {
   readonly businessProfileId: string;
   readonly title: string;
+  readonly categoryId: string;
   readonly description?: string;
   readonly price?: ListingPriceInput;
+  readonly attributes?: Record<string, unknown>;
 }
 
 /**
@@ -35,8 +36,10 @@ export interface CreateListingInput {
  */
 export interface UpdateListingInput {
   readonly title?: string;
+  readonly categoryId?: string;
   readonly description?: string;
   readonly price?: ListingPriceInput;
+  readonly attributes?: Record<string, unknown>;
 }
 
 /**
@@ -65,12 +68,18 @@ export interface ListingView {
   readonly status: ListingStatus;
   readonly minPrice: number | null;
   readonly maxPrice: number | null;
-  readonly currency: Currency | null;
-  readonly isNegotiable: boolean;
-  readonly coverUrl: string | null;
+  readonly currencyCode: string | null;
   readonly categoryId: string | null;
+  readonly attributes: Record<string, unknown> | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly reviews?: {
+    readonly id: string;
+    readonly reviewerId: string;
+    readonly rating: number;
+    readonly comment: string | null;
+    readonly createdAt: Date;
+  }[];
 }
 
 /**
@@ -85,10 +94,11 @@ export interface ListingSummary {
   readonly description: string | null;
   readonly minPrice: number | null;
   readonly maxPrice: number | null;
-  readonly currency: Currency | null;
+  readonly currencyCode: string | null;
   readonly isNegotiable: boolean;
-  readonly coverUrl: string | null;
   readonly categoryId: string | null;
+  readonly coverUrl?: string;
+  readonly attributes?: Record<string, unknown> | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,7 +107,7 @@ export interface ListingSummary {
 
 export interface DiscoverListingsInput {
   readonly businessProfileId?: string;
-  readonly currency?: Currency;
+  readonly currencyCode?: string;
   readonly minPrice?: number;
   readonly maxPrice?: number;
   readonly isNegotiable?: boolean;
@@ -107,6 +117,7 @@ export interface DiscoverListingsInput {
   readonly categoryId?: string;
   /** Filter by root category slug — returns all listings in any leaf under that root */
   readonly rootSlug?: string;
+  readonly attributes?: Record<string, unknown>;
   readonly page: number;
   readonly limit: number;
 }

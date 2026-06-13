@@ -1,7 +1,7 @@
 services:
   # ── Database ────────────────────────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: postgis/postgis:18-3.6
     container_name: pulse_db
     restart: unless-stopped
     environment:
@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-app_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     ports:
       - '5432:5432'
     healthcheck:
@@ -18,6 +18,21 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - internal
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: pulse_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - internal
 
@@ -38,6 +53,8 @@ services:
     # remove ports — can't bind same host port across replicas
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/api/health || exit 1']

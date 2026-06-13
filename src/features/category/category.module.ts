@@ -8,6 +8,9 @@ import { GetCategoryTreeUseCase } from './application/use-cases/get-category-tre
 import { GetCategoryUseCase } from './application/use-cases/get-category.use-case.js';
 import { CategoryController } from './api/controllers/category.controller.js';
 import { PublicCategoryController } from './api/controllers/public-category.controller.js';
+import { CreateCategoryAttributeUseCase } from './application/use-cases/create-category-attribute.use-case.js';
+import { UpdateCategoryAttributeUseCase } from './application/use-cases/update-category-attribute.use-case.js';
+import { DeleteCategoryAttributeUseCase } from './application/use-cases/delete-category-attribute.use-case.js';
 
 @Module({
   controllers: [PublicCategoryController, CategoryController],
@@ -18,6 +21,9 @@ import { PublicCategoryController } from './api/controllers/public-category.cont
     DeactivateCategoryUseCase,
     GetCategoryTreeUseCase,
     GetCategoryUseCase,
+    CreateCategoryAttributeUseCase,
+    UpdateCategoryAttributeUseCase,
+    DeleteCategoryAttributeUseCase,
   ],
   exports: [ICategoryRepository, GetCategoryUseCase, GetCategoryTreeUseCase],
 })

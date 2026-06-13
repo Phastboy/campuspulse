@@ -9,9 +9,10 @@ import {
   MinLength,
   ValidateIf,
   ValidateNested,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Currency } from '../../domain/types/currency.enum.js';
+
 import { ListingStatus } from '../../domain/types/listing-status.enum.js';
 
 export class ListingPriceDto {
@@ -29,8 +30,8 @@ export class ListingPriceDto {
    * Currency is required when any price is set.
    */
   @ValidateIf((o: ListingPriceDto) => o.minPrice !== undefined || o.maxPrice !== undefined)
-  @IsEnum(Currency)
-  currency?: Currency;
+  @IsString()
+  currencyCode?: string = 'NGN';
 
   @IsBoolean()
   isNegotiable!: boolean;
@@ -47,10 +48,17 @@ export class CreateListingDto {
   @MaxLength(5000)
   description?: string;
 
+  @IsString()
+  categoryId!: string;
+
   @IsOptional()
   @ValidateNested()
   @Type(() => ListingPriceDto)
   price?: ListingPriceDto;
+
+  @IsOptional()
+  @IsObject()
+  attributes?: Record<string, unknown>;
 }
 
 export class UpdateListingDto {
@@ -66,9 +74,17 @@ export class UpdateListingDto {
   description?: string;
 
   @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => ListingPriceDto)
   price?: ListingPriceDto;
+
+  @IsOptional()
+  @IsObject()
+  attributes?: Record<string, unknown>;
 }
 
 export class TransitionListingStatusDto {
@@ -78,8 +94,7 @@ export class TransitionListingStatusDto {
 
 export class GetListingsQueryDto {
   @IsOptional()
-  @IsEnum(Currency)
-  currency?: Currency;
+  currencyCode?: string;
 
   @IsOptional()
   @IsString()
@@ -105,4 +120,11 @@ export class GetListingsQueryDto {
   @IsOptional()
   @IsString()
   limit?: string;
+
+  /**
+   * JSON stringified attributes filter (e.g., {"brand":"Samsung"})
+   */
+  @IsOptional()
+  @IsString()
+  attributes?: string;
 }

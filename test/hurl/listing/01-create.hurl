@@ -20,7 +20,7 @@ jsonpath "$.status" == "DRAFT"
 jsonpath "$.isNegotiable" == false
 jsonpath "$.minPrice" == null
 jsonpath "$.maxPrice" == null
-jsonpath "$.currency" == null
+jsonpath "$.currencyCode" == null
 
 # --- Create a listing with price ---
 POST {{api_url}}/api/businesses/{{biz_id}}/listings
@@ -32,7 +32,7 @@ Content-Type: application/json
   "price": {
     "minPrice": 5000,
     "maxPrice": 15000,
-    "currency": "NGN",
+    "currencyCode": "NGN",
     "isNegotiable": true
   }
 }
@@ -42,7 +42,7 @@ priced_listing_id: jsonpath "$.id"
 [Asserts]
 jsonpath "$.minPrice" == "5000"
 jsonpath "$.maxPrice" == "15000"
-jsonpath "$.currency" == "NGN"
+jsonpath "$.currencyCode" == "NGN"
 jsonpath "$.isNegotiable" == true
 
 # --- Reject listing with price but missing currency ---

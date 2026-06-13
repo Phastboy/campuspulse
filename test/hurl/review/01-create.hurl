@@ -1,7 +1,7 @@
 # Review Creation & Validation
 
 # --- Submit a review (reviewer) ---
-POST {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+POST {{api_url}}/api/listings/{{review_listing_id}}/reviews
 Authorization: Bearer {{reviewer_token}}
 Content-Type: application/json
 {
@@ -13,14 +13,14 @@ HTTP 201
 review_id: jsonpath "$.id"
 [Asserts]
 jsonpath "$.id" isString
-jsonpath "$.businessProfileId" == "{{review_biz_id}}"
+jsonpath "$.listingId" == "{{review_listing_id}}"
 jsonpath "$.rating" == 4
 jsonpath "$.comment" == "Great service, fast delivery!"
 jsonpath "$.createdAt" isString
 jsonpath "$.updatedAt" isString
 
 # --- Duplicate review for same business must fail (409) ---
-POST {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+POST {{api_url}}/api/listings/{{review_listing_id}}/reviews
 Authorization: Bearer {{reviewer_token}}
 Content-Type: application/json
 {
@@ -30,7 +30,7 @@ Content-Type: application/json
 HTTP 409
 
 # --- Rating below 1 is rejected ---
-POST {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+POST {{api_url}}/api/listings/{{review_listing_id}}/reviews
 Authorization: Bearer {{intruder_token}}
 Content-Type: application/json
 {
@@ -40,7 +40,7 @@ Content-Type: application/json
 HTTP 400
 
 # --- Rating above 5 is rejected ---
-POST {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+POST {{api_url}}/api/listings/{{review_listing_id}}/reviews
 Authorization: Bearer {{intruder_token}}
 Content-Type: application/json
 {
@@ -49,7 +49,7 @@ Content-Type: application/json
 HTTP 400
 
 # --- Non-integer rating is rejected ---
-POST {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+POST {{api_url}}/api/listings/{{review_listing_id}}/reviews
 Authorization: Bearer {{intruder_token}}
 Content-Type: application/json
 {
@@ -58,7 +58,7 @@ Content-Type: application/json
 HTTP 400
 
 # --- Unauthenticated cannot submit review ---
-POST {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+POST {{api_url}}/api/listings/{{review_listing_id}}/reviews
 Content-Type: application/json
 {
   "rating": 3

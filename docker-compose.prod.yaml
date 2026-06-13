@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    networks:
+      - external
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128m
+
   backend:
     build:
       context: .

@@ -5,19 +5,16 @@ import { Review } from '../domain/types/review.entity.js';
 import {
   CreateReviewInput,
   UpdateReviewInput,
-  GetBusinessReviewsInput,
+  GetListingReviewsInput,
   ReviewPage,
   ReviewWithMedia,
   ReviewMediaItem,
 } from '../domain/types/review.types.js';
-import {
-  MediaResourceType as PrismaMediaResourceType,
-  MediaRole as PrismaMediaRole,
-} from '../../../../generated/prisma/client.js';
 import type {
   Review as PrismaReview,
   Media as PrismaMedia,
 } from '../../../../generated/prisma/client.js';
+import { MediaRole } from '../../media/domain/types/media-role.enum.js';
 
 // ---------------------------------------------------------------------------
 // Mappers
@@ -26,7 +23,7 @@ import type {
 function toDomain(raw: PrismaReview): Review {
   return {
     id: raw.id,
-    businessProfileId: raw.businessProfileId,
+    listingId: raw.listingId,
     reviewerId: raw.reviewerId,
     rating: raw.rating,
     comment: raw.comment,
@@ -66,7 +63,7 @@ export class PrismaReviewRepository extends IReviewRepository {
   async create(input: CreateReviewInput): Promise<Review> {
     const raw = await this.prisma.review.create({
       data: {
-        businessProfileId: input.businessProfileId,
+        listingId: input.listingId,
         reviewerId: input.reviewerId,
         rating: input.rating,
         comment: input.comment ?? null,
@@ -86,8 +83,7 @@ export class PrismaReviewRepository extends IReviewRepository {
       include: {
         media: {
           where: {
-            resourceType: PrismaMediaResourceType.REVIEW,
-            role: PrismaMediaRole.GALLERY,
+            role: MediaRole.GALLERY,
           },
           orderBy: { order: 'asc' },
         },
@@ -96,26 +92,24 @@ export class PrismaReviewRepository extends IReviewRepository {
     return raw ? toWithMedia(raw) : null;
   }
 
-  async existsByBusinessAndReviewer(
-    businessProfileId: string,
-    reviewerId: string,
-  ): Promise<boolean> {
+  async existsByListingAndReviewer(listingId: string, reviewerId: string): Promise<boolean> {
     const count = await this.prisma.review.count({
-      where: { businessProfileId, reviewerId },
+      where: { listingId, reviewerId },
     });
     return count > 0;
   }
 
-  async findByBusiness(input: GetBusinessReviewsInput): Promise<ReviewPage> {
+  async findByListing(input: GetListingReviewsInput): Promise<ReviewPage> {
     const limit = input.limit ?? 20;
 
     const rows = await this.prisma.review.findMany({
-      where: { businessProfileId: input.businessProfileId },
+      where: {
+        listingId: input.listingId,
+      },
       include: {
         media: {
           where: {
-            resourceType: PrismaMediaResourceType.REVIEW,
-            role: PrismaMediaRole.GALLERY,
+            role: MediaRole.GALLERY,
           },
           orderBy: { order: 'asc' },
         },
@@ -133,9 +127,11 @@ export class PrismaReviewRepository extends IReviewRepository {
     const hasNextPage = rows.length > limit;
     const items = hasNextPage ? rows.slice(0, limit) : rows;
 
+    const lastItem = items[items.length - 1];
+
     return {
       items: items.map(toWithMedia),
-      nextCursor: hasNextPage ? items[items.length - 1].id : null,
+      nextCursor: hasNextPage && lastItem ? lastItem.id : null,
     };
   }
 

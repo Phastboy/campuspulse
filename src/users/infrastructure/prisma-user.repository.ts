@@ -26,10 +26,10 @@ export class PrismaUserRepository implements IUserRepository {
       const updatedUser = await this.prisma.user.update({
         where: { accountId },
         data: {
-          name: payload.name,
-          avatarUrl: payload.avatarUrl,
-          avatarId: payload.avatarId,
-          phoneNumber: payload.phoneNumber,
+          ...(payload.name !== undefined && { name: payload.name }),
+          ...(payload.avatarUrl !== undefined && { avatarUrl: payload.avatarUrl }),
+          ...(payload.avatarId !== undefined && { avatarId: payload.avatarId }),
+          ...(payload.phoneNumber !== undefined && { phoneNumber: payload.phoneNumber }),
         },
       });
 

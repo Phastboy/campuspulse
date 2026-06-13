@@ -1,14 +1,16 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import slugify from 'slugify';
 import { IBusinessProfileRepository } from '../../domain/ports/business-profile.repository.port.js';
-import { CreateBusinessProfileInput } from '../../domain/types/business-profile.types.js';
-import { BusinessProfile } from '../../domain/types/business-profile.entity.js';
+import {
+  CreateBusinessProfileInput,
+  BusinessProfileView,
+} from '../../domain/types/business-profile.types.js';
 
 @Injectable()
 export class CreateBusinessProfileUseCase {
   constructor(private readonly repo: IBusinessProfileRepository) {}
 
-  async execute(input: CreateBusinessProfileInput): Promise<BusinessProfile> {
+  async execute(input: CreateBusinessProfileInput): Promise<BusinessProfileView> {
     const slug = await this.deriveUniqueSlug(input.name);
 
     return this.repo.create(input, slug);

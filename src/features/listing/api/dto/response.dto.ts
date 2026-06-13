@@ -1,4 +1,5 @@
-import { Currency } from '../../domain/types/currency.enum.js';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 import { ListingStatus } from '../../domain/types/listing-status.enum.js';
 import { Listing } from '../../domain/types/listing.entity.js';
 import { ListingSummary, PaginatedListingSummaries } from '../../domain/types/listing.types.js';
@@ -12,10 +13,13 @@ export class ListingResponseDto {
   status: ListingStatus;
   minPrice: string | null;
   maxPrice: string | null;
-  currency: Currency | null;
+  currencyCode: string | null;
   isNegotiable: boolean;
-  createdAt: string;
-  updatedAt: string;
+  @ApiPropertyOptional({ nullable: true }) categoryId: string | null;
+  @ApiPropertyOptional() attributes: Record<string, unknown> | null;
+  @ApiProperty() createdAt: string;
+  @ApiProperty() updatedAt: string;
+  @ApiPropertyOptional() reviews?: any[];
 
   private constructor(listing: Listing) {
     this.id = listing.id;
@@ -26,10 +30,18 @@ export class ListingResponseDto {
     this.status = listing.status;
     this.minPrice = listing.price.minPrice?.toString() ?? null;
     this.maxPrice = listing.price.maxPrice?.toString() ?? null;
-    this.currency = listing.price.currency;
+    this.currencyCode = listing.price.currencyCode;
     this.isNegotiable = listing.price.isNegotiable;
+    this.categoryId = listing.categoryId;
+    this.attributes = listing.attributes;
     this.createdAt = listing.createdAt.toISOString();
     this.updatedAt = listing.updatedAt.toISOString();
+    if (listing.reviews !== undefined) {
+      this.reviews = listing.reviews.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+      }));
+    }
   }
 
   static from(listing: Listing): ListingResponseDto {
@@ -45,8 +57,11 @@ export class ListingSummaryResponseDto {
   description: string | null;
   minPrice: string | null;
   maxPrice: string | null;
-  currency: Currency | null;
+  currencyCode: string | null;
+  categoryId: string | null;
   isNegotiable: boolean;
+  @ApiPropertyOptional() coverUrl?: string;
+  @ApiPropertyOptional() attributes?: Record<string, unknown> | null;
 
   private constructor(summary: ListingSummary) {
     this.id = summary.id;
@@ -56,8 +71,15 @@ export class ListingSummaryResponseDto {
     this.description = summary.description;
     this.minPrice = summary.minPrice?.toString() ?? null;
     this.maxPrice = summary.maxPrice?.toString() ?? null;
-    this.currency = summary.currency;
+    this.currencyCode = summary.currencyCode;
+    this.categoryId = summary.categoryId;
     this.isNegotiable = summary.isNegotiable;
+    if (summary.coverUrl !== undefined) {
+      this.coverUrl = summary.coverUrl;
+    }
+    if (summary.attributes !== undefined) {
+      this.attributes = summary.attributes;
+    }
   }
 
   static from(summary: ListingSummary): ListingSummaryResponseDto {

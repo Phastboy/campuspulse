@@ -12,8 +12,16 @@ import {
   UpdateListingInput,
 } from '../domain/types/listing.types.js';
 
-// Cast to include categoryId that exists post-migration
-type PrismaListingExtended = PrismaListing & { categoryId?: string | null };
+type PrismaListingExtended = PrismaListing & {
+  categoryId?: string | null;
+  reviews?: {
+    id: string;
+    reviewerId: string;
+    rating: number;
+    comment: string | null;
+    createdAt: Date;
+  }[];
+};
 
 function toDomain(raw: PrismaListingExtended): Listing {
   return {
@@ -27,11 +35,21 @@ function toDomain(raw: PrismaListingExtended): Listing {
     price: {
       minPrice: raw.minPrice !== null ? raw.minPrice.toNumber() : null,
       maxPrice: raw.maxPrice !== null ? raw.maxPrice.toNumber() : null,
-      currency: raw.currency,
+      currencyCode: raw.currencyCode,
       isNegotiable: raw.isNegotiable,
     },
+    attributes: raw.attributes ? (raw.attributes as Record<string, unknown>) : null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    ...(raw.reviews && {
+      reviews: raw.reviews.map((r) => ({
+        id: r.id,
+        reviewerId: r.reviewerId,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+      })),
+    }),
   };
 }
 
@@ -46,24 +64,32 @@ export class PrismaListingRepository extends IListingRepository {
       data: {
         businessProfileId: input.businessProfileId,
         title: input.title,
+        categoryId: input.categoryId,
         slug,
         description: input.description ?? null,
-        minPrice: input.price?.minPrice ?? null,
-        maxPrice: input.price?.maxPrice ?? null,
-        currency: input.price?.currency ?? null,
-        isNegotiable: input.price?.isNegotiable ?? false,
+        ...(input.price?.minPrice !== undefined && { minPrice: input.price.minPrice }),
+        ...(input.price?.maxPrice !== undefined && { maxPrice: input.price.maxPrice }),
+        ...(input.price?.currencyCode !== undefined && { currencyCode: input.price.currencyCode }),
+        ...(input.price?.isNegotiable !== undefined && { isNegotiable: input.price.isNegotiable }),
+        ...(input.attributes !== undefined && { attributes: input.attributes as Prisma.InputJsonValue }),
       },
     });
     return toDomain(raw);
   }
 
   async findById(id: string): Promise<Listing | null> {
-    const raw = await this.prisma.listing.findUnique({ where: { id } });
+    const raw = await this.prisma.listing.findUnique({
+      where: { id },
+      include: { reviews: true },
+    });
     return raw ? toDomain(raw) : null;
   }
 
   async findBySlug(slug: string): Promise<Listing | null> {
-    const raw = await this.prisma.listing.findFirst({ where: { slug } });
+    const raw = await this.prisma.listing.findFirst({
+      where: { slug },
+      include: { reviews: true },
+    });
     return raw ? toDomain(raw) : null;
   }
 
@@ -77,6 +103,7 @@ export class PrismaListingRepository extends IListingRepository {
   async findByBusinessProfile(businessProfileId: string): Promise<Listing[]> {
     const rows = await this.prisma.listing.findMany({
       where: { businessProfileId },
+      include: { reviews: true },
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((r) => toDomain(r as PrismaListingExtended));
@@ -88,11 +115,15 @@ export class PrismaListingRepository extends IListingRepository {
       data: {
         ...(input.title !== undefined && { title: input.title }),
         ...(input.description !== undefined && { description: input.description }),
+        ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
         ...(input.price !== undefined && {
           minPrice: input.price.minPrice ?? null,
           maxPrice: input.price.maxPrice ?? null,
-          currency: input.price.currency ?? null,
+          currencyCode: input.price.currencyCode ?? null,
           isNegotiable: input.price.isNegotiable,
+        }),
+        ...(input.attributes !== undefined && {
+          attributes: input.attributes === null ? Prisma.DbNull : (input.attributes as Prisma.InputJsonValue),
         }),
       },
     });
@@ -112,10 +143,32 @@ export class PrismaListingRepository extends IListingRepository {
   }
 
   async discover(input: DiscoverListingsInput): Promise<PaginatedListingSummaries> {
+    const attributeFilters: Prisma.ListingWhereInput[] = input.attributes
+      ? Object.entries(input.attributes).map(([key, value]) => ({
+          attributes: {
+            path: [key],
+            equals: value !== null ? value : Prisma.DbNull,
+          } as any,
+        }))
+      : [];
+
+    const searchFilters: Prisma.ListingWhereInput[] = input.search
+      ? [
+          {
+            OR: [
+              { title: { contains: input.search, mode: 'insensitive' } },
+              { description: { contains: input.search, mode: 'insensitive' } },
+            ],
+          },
+        ]
+      : [];
+
+    const andConditions = [...attributeFilters, ...searchFilters];
+
     const where: Prisma.ListingWhereInput = {
       status: input.status ?? ListingStatus.PUBLISHED,
       ...(input.businessProfileId && { businessProfileId: input.businessProfileId }),
-      ...(input.currency && { currency: input.currency }),
+      ...(input.currencyCode && { currencyCode: input.currencyCode }),
       ...(input.isNegotiable !== undefined && { isNegotiable: input.isNegotiable }),
       ...(input.minPrice !== undefined && { minPrice: { gte: input.minPrice } }),
       ...(input.maxPrice !== undefined && { maxPrice: { lte: input.maxPrice } }),
@@ -125,12 +178,7 @@ export class PrismaListingRepository extends IListingRepository {
         !input.categoryId && {
           category: { parent: { slug: input.rootSlug } },
         }),
-      ...(input.search && {
-        OR: [
-          { title: { contains: input.search, mode: 'insensitive' } },
-          { description: { contains: input.search, mode: 'insensitive' } },
-        ],
-      }),
+      ...(andConditions.length > 0 && { AND: andConditions }),
     };
 
     const skip = (input.page - 1) * input.limit;
@@ -140,20 +188,15 @@ export class PrismaListingRepository extends IListingRepository {
         where,
         skip,
         take: input.limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          businessProfileId: true,
-          title: true,
-          slug: true,
-          description: true,
-          minPrice: true,
-          maxPrice: true,
-          currency: true,
-          isNegotiable: true,
-          coverUrl: true,
-          categoryId: true,
+        include: { 
+          reviews: true,
+          media: {
+            where: { role: 'COVER' },
+            take: 1,
+            select: { url: true }
+          }
         },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.listing.count({ where }),
     ]);
@@ -163,7 +206,10 @@ export class PrismaListingRepository extends IListingRepository {
         ...r,
         minPrice: r.minPrice !== null ? r.minPrice.toNumber() : null,
         maxPrice: r.maxPrice !== null ? r.maxPrice.toNumber() : null,
+        currencyCode: r.currencyCode ?? null,
         categoryId: (r as { categoryId?: string | null }).categoryId ?? null,
+        coverUrl: (r as any).media?.[0]?.url ?? undefined,
+        attributes: r.attributes ? (r.attributes as Record<string, unknown>) : null,
       })),
       total,
       page: input.page,

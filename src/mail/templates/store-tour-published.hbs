@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Store Tour is Live!</title>
+  <style>
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: #111827;
+      padding: 30px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .content {
+      padding: 30px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .highlight {
+      color: #3b82f6;
+      font-weight: 600;
+    }
+    .button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: #3b82f6;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .footer {
+      background: #f9fafb;
+      padding: 20px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Pulse</h1>
+    </div>
+    <div class="content">
+      <h2>Great news, {{businessName}}!</h2>
+      <p>A platform moderator has just published a <span class="highlight">Store Tour</span> for your business on Pulse.</p>
+      <p>This means more visibility for your products and a better discovery experience for customers checking out your profile!</p>
+      <div style="text-align: center;">
+        <a href="{{action_url}}" class="button">View Your Store Tour</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>If you have any questions, reply directly to this email to reach our support team.</p>
+      <p>&copy; 2026 Pulse. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

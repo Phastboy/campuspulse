@@ -22,14 +22,14 @@ Content-Type: application/json
   "price": {
     "minPrice": 2000,
     "maxPrice": 8000,
-    "currency": "NGN",
+    "currencyCode": "NGN",
     "isNegotiable": true
   }
 }
 HTTP 200
 [Asserts]
 jsonpath "$.minPrice" == "2000"
-jsonpath "$.currency" == "NGN"
+jsonpath "$.currencyCode" == "NGN"
 jsonpath "$.isNegotiable" == true
 
 # --- Intruder cannot update ---

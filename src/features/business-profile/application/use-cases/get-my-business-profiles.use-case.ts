@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { IBusinessProfileRepository } from '../../domain/ports/business-profile.repository.port.js';
-import { BusinessProfile } from '../../domain/types/business-profile.entity.js';
+import { BusinessProfileView } from '../../domain/types/business-profile.types.js';
 
 @Injectable()
 export class GetMyBusinessProfilesUseCase {
   constructor(private readonly repo: IBusinessProfileRepository) {}
 
-  async execute(ownerId: string): Promise<BusinessProfile[]> {
+  async execute(ownerId: string): Promise<BusinessProfileView[]> {
     return this.repo.findByOwner(ownerId);
   }
 }

@@ -10,14 +10,18 @@ import { DeleteListingUseCase } from './application/use-cases/delete-listing.use
 import { GetPublicListingUseCase } from './application/use-cases/get-public-listing.use-case.js';
 import { GetBusinessListingsUseCase } from './application/use-cases/get-business-listings.use-case.js';
 import { DiscoverListingsUseCase } from './application/use-cases/discover-listings.use-case.js';
+import { ValidateListingAttributesService } from './application/services/validate-listing-attributes.service.js';
+import { CategoryModule } from '../category/category.module.js';
 import { PublicListingController } from './api/controllers/public-listing.controller.js';
 import { ListingController } from './api/controllers/listing.controller.js';
 
 @Module({
+  imports: [CategoryModule],
   controllers: [PublicListingController, ListingController],
   providers: [
     { provide: IListingRepository, useClass: PrismaListingRepository },
     { provide: IBusinessProfileRepository, useClass: PrismaBusinessProfileRepository },
+    ValidateListingAttributesService,
     CreateListingUseCase,
     UpdateListingUseCase,
     TransitionListingStatusUseCase,

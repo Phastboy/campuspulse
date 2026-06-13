@@ -1,7 +1,7 @@
 # Review Read — Public Listing with Embedded Media
 
 # --- Anyone can list reviews for a business (no auth required) ---
-GET {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+GET {{api_url}}/api/listings/{{review_listing_id}}/reviews
 HTTP 200
 [Asserts]
 jsonpath "$.items" isCollection
@@ -12,7 +12,7 @@ jsonpath "$.items[0].media" isCollection
 jsonpath "$.nextCursor" exists
 
 # --- Pagination: limit=1 to verify cursor works ---
-GET {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews?limit=1
+GET {{api_url}}/api/listings/{{review_listing_id}}/reviews?limit=1
 HTTP 200
 [Captures]
 page1_cursor: jsonpath "$.nextCursor"

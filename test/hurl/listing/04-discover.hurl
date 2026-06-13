@@ -10,7 +10,7 @@ Content-Type: application/json
   "price": {
     "minPrice": 1000,
     "maxPrice": 5000,
-    "currency": "NGN",
+    "currencyCode": "NGN",
     "isNegotiable": false
   }
 }

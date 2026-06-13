@@ -32,7 +32,7 @@ export class ReviewMediaItemDto {
 
 export class ReviewResponseDto {
   @ApiProperty() id: string;
-  @ApiProperty() businessProfileId: string;
+  @ApiProperty() listingId: string;
   @ApiProperty() reviewerId: string;
   @ApiProperty() rating: number;
   @ApiPropertyOptional({ nullable: true }) comment: string | null;
@@ -41,7 +41,7 @@ export class ReviewResponseDto {
 
   private constructor(r: Review) {
     this.id = r.id;
-    this.businessProfileId = r.businessProfileId;
+    this.listingId = r.listingId;
     this.reviewerId = r.reviewerId;
     this.rating = r.rating;
     this.comment = r.comment;
@@ -60,7 +60,7 @@ export class ReviewResponseDto {
 
 export class ReviewWithMediaDto {
   @ApiProperty() id: string;
-  @ApiProperty() businessProfileId: string;
+  @ApiProperty() listingId: string;
   @ApiProperty() reviewerId: string;
   @ApiProperty() rating: number;
   @ApiPropertyOptional({ nullable: true }) comment: string | null;
@@ -71,7 +71,7 @@ export class ReviewWithMediaDto {
 
   private constructor(r: ReviewWithMedia) {
     this.id = r.id;
-    this.businessProfileId = r.businessProfileId;
+    this.listingId = r.listingId;
     this.reviewerId = r.reviewerId;
     this.rating = r.rating;
     this.comment = r.comment;

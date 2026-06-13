@@ -1,5 +1,4 @@
 # Business Profile Creation & Validation Boundary Tests
-# NOTE: businessType field no longer exists — removed from schema.
 
 # --- Create a business profile (minimal required fields) ---
 POST {{api_url}}/api/businesses
@@ -11,7 +10,8 @@ Content-Type: application/json
   "phoneNumber": "+2348000000001",
   "whatsapp": "+2348000000001",
   "email": "contact@pulselogistics.test",
-  "location": "Lagos, Nigeria"
+  "location": "Lagos, Nigeria",
+  "businessType": "PHYSICAL"
 }
 HTTP 201
 [Captures]
@@ -40,7 +40,11 @@ POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "description": "Missing name"
+  "description": "Missing name",
+  "businessType": "PHYSICAL",
+  "phoneNumber": "+2348000000000",
+  "whatsapp": "+2348000000000",
+  "email": "test@business.com"
 }
 HTTP 400
 
@@ -48,6 +52,10 @@ HTTP 400
 POST {{api_url}}/api/businesses
 Content-Type: application/json
 {
-  "name": "Ghost Business {{run_id}}"
+  "name": "Ghost Business {{run_id}}",
+  "businessType": "PHYSICAL",
+  "phoneNumber": "+2348000000000",
+  "whatsapp": "+2348000000000",
+  "email": "test@business.com"
 }
 HTTP 401

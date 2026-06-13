@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 import { validateConfig } from './configs/validation.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -7,10 +8,19 @@ import { HealthController } from './health/health.controller.js';
 import { StorageModule } from './storage/storage.module.js';
 import { UsersModule } from './users/users.module.js';
 import { BusinessProfileModule } from './features/business-profile/business-profile.module.js';
+import { TagModule } from './features/tag/tag.module.js';
+
 import { ListingModule } from './features/listing/listing.module.js';
 import { MediaModule } from './features/media/media.module.js';
 import { CategoryModule } from './features/category/category.module.js';
 import { ReviewModule } from './features/review/review.module.js';
+import { StoreTourModule } from './features/store-tour/store-tour.module.js';
+import { InquiryModule } from './features/inquiry/inquiry.module.js';
+import { SavesModule } from './features/saves/saves.module.js';
+import { AnalyticsModule } from './features/analytics/analytics.module.js';
+import { AdminModule } from './features/admin/admin.module.js';
+import { MailModule } from './mail/mail.module.js';
+import { RedisModule } from './shared/redis/redis.module.js';
 
 @Module({
   imports: [
@@ -19,15 +29,40 @@ import { ReviewModule } from './features/review/review.module.js';
       envFilePath: ['.env', '.env.local'],
       validate: validateConfig,
     }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST');
+        const port = configService.get<number>('REDIS_PORT');
+        const password = configService.get<string>('REDIS_PASSWORD');
+        return {
+          connection: {
+            ...(host ? { host } : {}),
+            ...(port ? { port } : {}),
+            ...(password ? { password } : {}),
+          },
+        };
+      },
+    }),
     PrismaModule,
     AuthModule,
     StorageModule.register(),
     UsersModule,
+    CategoryModule,
+    TagModule,
     BusinessProfileModule,
     ListingModule,
     MediaModule,
-    CategoryModule,
+
     ReviewModule,
+    StoreTourModule,
+    InquiryModule,
+    SavesModule,
+    AnalyticsModule,
+    AdminModule,
+    MailModule,
+    RedisModule,
   ],
   controllers: [HealthController],
 })

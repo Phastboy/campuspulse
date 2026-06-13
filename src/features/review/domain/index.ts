@@ -2,7 +2,7 @@ export type { Review } from './types/review.entity.js';
 export type {
   CreateReviewInput,
   UpdateReviewInput,
-  GetBusinessReviewsInput,
+  GetListingReviewsInput,
   ReviewPage,
   ReviewWithMedia,
   ReviewMediaItem,

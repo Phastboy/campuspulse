@@ -13,9 +13,9 @@ media_listing_id: jsonpath "$.id"
 POST {{api_url}}/api/listings/{{media_listing_id}}/media
 Authorization: Bearer {{owner_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: COVER
-HTTP 200
+HTTP 201
 [Captures]
 cover_id: jsonpath "$.id"
 [Asserts]
@@ -27,9 +27,9 @@ jsonpath "$.url" isString
 POST {{api_url}}/api/listings/{{media_listing_id}}/media
 Authorization: Bearer {{owner_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000106287.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: GALLERY
-HTTP 200
+HTTP 201
 [Captures]
 gallery_1_id: jsonpath "$.id"
 [Asserts]
@@ -40,9 +40,9 @@ jsonpath "$.order" == 0
 POST {{api_url}}/api/listings/{{media_listing_id}}/media
 Authorization: Bearer {{owner_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: GALLERY
-HTTP 200
+HTTP 201
 [Captures]
 gallery_2_id: jsonpath "$.id"
 [Asserts]
@@ -52,7 +52,7 @@ jsonpath "$.order" == 1
 GET {{api_url}}/api/listings/{{media_listing_id}}/media
 HTTP 200
 [Asserts]
-jsonpath "$.cover" isString
+jsonpath "$.cover.url" isString
 jsonpath "$.gallery" isCollection
 jsonpath "$.gallery" count == 2
 
@@ -74,7 +74,7 @@ jsonpath "$[1].order" == 1
 POST {{api_url}}/api/listings/{{media_listing_id}}/media
 Authorization: Bearer {{intruder_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: COVER
 HTTP 403
 
@@ -82,7 +82,7 @@ HTTP 403
 POST {{api_url}}/api/listings/{{media_listing_id}}/media
 Authorization: Bearer {{owner_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: LOGO
 HTTP 400
 

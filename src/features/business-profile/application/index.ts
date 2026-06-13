@@ -4,3 +4,6 @@ export { DeleteBusinessProfileUseCase } from './use-cases/delete-business-profil
 export { GetPublicBusinessProfileUseCase } from './use-cases/get-public-business-profile.use-case.js';
 export { GetMyBusinessProfilesUseCase } from './use-cases/get-my-business-profiles.use-case.js';
 export { DiscoverBusinessesUseCase } from './use-cases/discover-businesses.use-case.js';
+export { SetOperatingHoursUseCase } from './use-cases/set-operating-hours.use-case.js';
+export { SetBusinessTagsUseCase } from './use-cases/set-business-tags.use-case.js';
+export { GetTagsUseCase } from './use-cases/get-tags.use-case.js';

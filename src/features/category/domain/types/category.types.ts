@@ -29,6 +29,28 @@ export interface UpdateCategoryInput {
 }
 
 // ---------------------------------------------------------------------------
+// Attribute Use case inputs
+// ---------------------------------------------------------------------------
+
+import { AttributeType } from './category-attribute.entity.js';
+
+export interface CreateCategoryAttributeInput {
+  readonly key: string;
+  readonly label: string;
+  readonly type: AttributeType;
+  readonly isRequired?: boolean;
+  readonly displayOrder?: number;
+  readonly options?: string[] | null;
+}
+
+export interface UpdateCategoryAttributeInput {
+  readonly label?: string;
+  readonly isRequired?: boolean;
+  readonly displayOrder?: number;
+  readonly options?: string[] | null;
+}
+
+// ---------------------------------------------------------------------------
 // Views
 // ---------------------------------------------------------------------------
 

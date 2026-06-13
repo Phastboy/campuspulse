@@ -4,9 +4,9 @@
 POST {{api_url}}/api/reviews/{{review_id}}/media
 Authorization: Bearer {{reviewer_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: GALLERY
-HTTP 200
+HTTP 201
 [Captures]
 review_photo_1_id: jsonpath "$.id"
 [Asserts]
@@ -20,9 +20,9 @@ jsonpath "$.mediaType" == "IMAGE"
 POST {{api_url}}/api/reviews/{{review_id}}/media
 Authorization: Bearer {{reviewer_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000106287.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: GALLERY
-HTTP 200
+HTTP 201
 [Captures]
 review_photo_2_id: jsonpath "$.id"
 [Asserts]
@@ -41,7 +41,7 @@ jsonpath "$.gallery[1].order" == 1
 POST {{api_url}}/api/reviews/{{review_id}}/media
 Authorization: Bearer {{reviewer_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: COVER
 HTTP 400
 
@@ -49,7 +49,7 @@ HTTP 400
 POST {{api_url}}/api/reviews/{{review_id}}/media
 Authorization: Bearer {{reviewer_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: LOGO
 HTTP 400
 
@@ -57,14 +57,14 @@ HTTP 400
 POST {{api_url}}/api/reviews/{{review_id}}/media
 Authorization: Bearer {{intruder_token}}
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: GALLERY
 HTTP 403
 
 # --- Unauthenticated cannot upload ---
 POST {{api_url}}/api/reviews/{{review_id}}/media
 [Multipart]
-file: file,{{fixtures_dir}}/1000058559.jpg; image/jpeg
+file: file,/home/tgenericx/Pictures/sharp.png; image/png
 role: GALLERY
 HTTP 401
 
@@ -102,7 +102,7 @@ jsonpath "$.gallery" count == 1
 jsonpath "$.gallery[0].order" == 0
 
 # --- Review list now shows embedded media ---
-GET {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+GET {{api_url}}/api/listings/{{review_listing_id}}/reviews
 HTTP 200
 [Asserts]
 jsonpath "$.items[0].media" isCollection

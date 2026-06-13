@@ -1,7 +1,9 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { IBusinessProfileRepository } from '../../domain/ports/business-profile.repository.port.js';
-import { UpdateBusinessProfileInput } from '../../domain/types/business-profile.types.js';
-import { BusinessProfile } from '../../domain/types/business-profile.entity.js';
+import {
+  UpdateBusinessProfileInput,
+  BusinessProfileView,
+} from '../../domain/types/business-profile.types.js';
 
 @Injectable()
 export class UpdateBusinessProfileUseCase {
@@ -11,7 +13,7 @@ export class UpdateBusinessProfileUseCase {
     id: string,
     requesterId: string,
     input: UpdateBusinessProfileInput,
-  ): Promise<BusinessProfile> {
+  ): Promise<BusinessProfileView> {
     const profile = await this.repo.findById(id);
 
     if (!profile) {

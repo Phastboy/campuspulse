@@ -7,9 +7,11 @@ export class UuidGenerator {
   }
 }
 
+import { TimeUtil } from '../shared/utils/time.util.js';
+
 export class SystemClock implements ClockPort {
   now(): Date {
-    return new Date();
+    return TimeUtil.currentLegacyDate();
   }
 }
 

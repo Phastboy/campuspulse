@@ -6,7 +6,11 @@ POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "name": "Listing Suite Business {{run_id}}"
+  "name": "Listing Suite Business {{run_id}}",
+  "businessType": "PHYSICAL",
+  "phoneNumber": "+2348000000000",
+  "whatsapp": "+2348000000000",
+  "email": "test@business.com"
 }
 HTTP 201
 [Captures]

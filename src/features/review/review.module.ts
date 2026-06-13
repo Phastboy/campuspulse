@@ -4,7 +4,7 @@ import { PrismaReviewRepository } from './infrastructure/prisma-review.repositor
 import { CreateReviewUseCase } from './application/use-cases/create-review.use-case.js';
 import { UpdateReviewUseCase } from './application/use-cases/update-review.use-case.js';
 import { DeleteReviewUseCase } from './application/use-cases/delete-review.use-case.js';
-import { GetBusinessReviewsUseCase } from './application/use-cases/get-business-reviews.use-case.js';
+import { GetListingReviewsUseCase } from './application/use-cases/get-listing-reviews.use-case.js';
 import { ReviewController } from './api/controllers/review.controller.js';
 
 @Module({
@@ -17,7 +17,7 @@ import { ReviewController } from './api/controllers/review.controller.js';
     CreateReviewUseCase,
     UpdateReviewUseCase,
     DeleteReviewUseCase,
-    GetBusinessReviewsUseCase,
+    GetListingReviewsUseCase,
   ],
 })
 export class ReviewModule {}

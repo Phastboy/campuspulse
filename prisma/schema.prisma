@@ -2,12 +2,14 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [postgis]
 }
 
 // ============================================
@@ -106,8 +108,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  businessProfiles BusinessProfile[]
-  reviewsGiven     Review[]          @relation("ReviewsGiven")
+  businessProfiles  BusinessProfile[]
+  businessDrafts    BusinessProfileDraft[]
+  reviewsGiven      Review[]               @relation("ReviewsGiven")
+  storeToursCreated StoreTour[]
+  inquiries         Inquiry[]              @relation("UserInquiries")
+  messagesSent      InquiryMessage[]       @relation("MessageSender")
+  savedListings     SavedListing[]         @relation("SavedListings")
+  savedBusinesses   SavedBusiness[]        @relation("SavedBusinesses")
 
   @@index([accountId])
 }
@@ -123,6 +131,12 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum BusinessType {
+  ONLINE
+  PHYSICAL
+  HYBRID
+}
+
 model BusinessProfile {
   id String @id @default(cuid())
 
@@ -135,39 +149,70 @@ model BusinessProfile {
   // Trust signal — not a permission or role
   verificationStatus VerificationStatus @default(UNVERIFIED)
 
-  isPublic    Boolean @default(false)
-  description String?
+  isPublic     Boolean      @default(false)
+  description  String?
+  businessType BusinessType
+  websiteUrl   String?
+
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
 
   // External contact — Pulse does not execute commerce
-  phoneNumber String?
-  whatsapp    String?
-  email       String?
-  location    String?
-
-  // Geography — for proximity queries
-  latitude  Float?
-  longitude Float?
+  phoneNumber String
+  whatsapp    String
+  email       String
+  // Physical location using PostGIS
+  locationId  String?
+  geoEntity   Location? @relation(fields: [locationId], references: [id])
 
   // Commercial identity — leaf category only (see Category constraints)
   categoryId String?
-  category   Category? @relation("BusinessProfileCategory", fields: [categoryId], references: [id])
+  category   Category?   @relation("BusinessProfileCategory", fields: [categoryId], references: [id])
+  storeTours StoreTour[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  listings Listing[]
-  hours    OperatingHours[]
-  tags     BusinessProfileTag[]
-  reviews  Review[]
-  media    Media[]              @relation("BusinessProfileMedia")
+  listings        Listing[]
+  hours           OperatingHours[]
+  tags            BusinessProfileTag[]
+  media           Media[]
+  inquiries       Inquiry[]
+  savedByUsers    SavedBusiness[]      @relation("SavedByUsers")
+  analyticsEvents AnalyticsEvent[]
 
   @@index([ownerId])
   @@index([slug])
   @@index([verificationStatus])
   @@index([isPublic])
   @@index([categoryId])
-  @@index([latitude, longitude])
+  @@index([locationId])
   @@map("business_profiles")
+}
+
+model Location {
+  id               String                               @id @default(cuid())
+  name             String
+  formattedAddress String
+  placeId          String?
+  city             String?
+  state            String?
+  country          String?
+  coordinates      Unsupported("geometry(Point, 4326)")
+
+  businessProfiles BusinessProfile[]
+}
+
+model BusinessProfileDraft {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@map("business_profile_drafts")
 }
 
 // ============================================
@@ -181,13 +226,6 @@ enum ListingStatus {
   ARCHIVED
 }
 
-enum Currency {
-  NGN
-  USD
-  GBP
-  EUR
-}
-
 model Listing {
   id String @id @default(cuid())
 
@@ -199,12 +237,16 @@ model Listing {
   description String?
 
   status ListingStatus @default(DRAFT)
+  media  Media[]
 
   // Prices stored as Decimal for monetary precision
-  minPrice     Decimal?  @db.Decimal(18, 2)
-  maxPrice     Decimal?  @db.Decimal(18, 2)
-  currency     Currency?
-  isNegotiable Boolean   @default(false)
+  minPrice     Decimal? @db.Decimal(18, 2)
+  maxPrice     Decimal? @db.Decimal(18, 2)
+  currencyCode String?
+  isNegotiable Boolean  @default(false)
+
+  // Dynamic attributes corresponding to CategoryAttribute schema
+  attributes Json? @db.JsonB
 
   // Offering type — leaf category only (see Category constraints)
   categoryId String?
@@ -213,10 +255,14 @@ model Listing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  reviews      Review[]
+  inquiries    Inquiry[]
+  savedByUsers SavedListing[] @relation("SavedByUsers")
+
   @@unique([businessProfileId, slug])
   @@index([businessProfileId])
   @@index([status])
-  @@index([currency])
+  @@index([currencyCode])
   @@index([minPrice])
   @@index([maxPrice])
   @@index([isNegotiable])
@@ -233,12 +279,6 @@ enum MediaType {
   VIDEO
 }
 
-enum MediaResourceType {
-  LISTING
-  BUSINESS_PROFILE
-  REVIEW
-}
-
 enum MediaRole {
   /// BusinessProfile only — singleton
   LOGO
@@ -253,30 +293,31 @@ enum MediaRole {
 model Media {
   id String @id @default(cuid())
 
-  // Polymorphic ownership
-  resourceType MediaResourceType
-  resourceId   String
-
   url    String
   fileId String
 
   mediaType MediaType
+  role      MediaRole
 
-  // Semantic role — determines cardinality and display context
-  role MediaRole
-
-  // Display sequence — only meaningful for GALLERY role items
-  // null for singleton roles (LOGO, BANNER, COVER)
   order Int?
+
+  businessProfileId String?
+  businessProfile   BusinessProfile? @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  storeTourId String?
+  storeTour   StoreTour? @relation(fields: [storeTourId], references: [id], onDelete: Cascade)
+
+  reviewId String?
+  review   Review? @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  businessProfile BusinessProfile? @relation("BusinessProfileMedia", fields: [resourceId], references: [id], onDelete: Cascade, map: "media_business_profile_fk")
-  review          Review?          @relation("ReviewMedia", fields: [resourceId], references: [id], onDelete: Cascade, map: "media_review_fk")
-
-  @@index([resourceType, resourceId])
-  @@index([resourceType, resourceId, order])
-  @@index([resourceType, resourceId, role])
+  @@index([businessProfileId])
+  @@index([listingId])
+  @@index([storeTourId])
   @@map("media")
 }
 
@@ -307,13 +348,44 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  businessProfiles BusinessProfile[] @relation("BusinessProfileCategory")
-  listings         Listing[]         @relation("ListingCategory")
+  businessProfiles BusinessProfile[]   @relation("BusinessProfileCategory")
+  listings         Listing[]           @relation("ListingCategory")
+  attributes       CategoryAttribute[]
 
   @@index([parentId])
   @@index([slug])
   @@index([isActive])
   @@map("categories")
+}
+
+// ============================================
+// Category Attributes
+// ============================================
+
+enum AttributeType {
+  STRING
+  NUMBER
+  BOOLEAN
+  SELECT
+}
+
+model CategoryAttribute {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  key          String // e.g., "capacity", "condition"
+  label        String // e.g., "Guest Capacity", "Item Condition"
+  type         AttributeType
+  isRequired   Boolean       @default(false)
+  displayOrder Int           @default(0)
+
+  // For SELECT: flat array e.g., ["New", "Used", "Refurbished"]
+  options Json?
+
+  @@unique([categoryId, key])
+  @@index([categoryId])
+  @@map("category_attributes")
 }
 
 // ============================================
@@ -323,8 +395,8 @@ model Category {
 model Review {
   id String @id @default(cuid())
 
-  businessProfileId String
-  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   reviewerId String
   reviewer   User   @relation("ReviewsGiven", fields: [reviewerId], references: [id])
@@ -336,13 +408,60 @@ model Review {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  media Media[] @relation("ReviewMedia")
+  media Media[]
 
-  // One review per business per user
-  @@unique([businessProfileId, reviewerId])
-  @@index([businessProfileId])
+  @@unique([listingId, reviewerId])
   @@index([reviewerId])
+  @@index([listingId])
   @@map("reviews")
+}
+
+enum StoreTourStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model StoreTour {
+  id String @id @default(cuid())
+
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  title String
+
+  summary String?
+
+  visitDate DateTime
+
+  status StoreTourStatus @default(DRAFT)
+
+  publishedAt DateTime?
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  highlights StoreTourHighlight[]
+
+  media Media[]
+
+  @@index([businessProfileId])
+  @@index([status])
+  @@map("store_tours")
+}
+
+model StoreTourHighlight {
+  id String @id @default(cuid())
+
+  storeTourId String
+  storeTour   StoreTour @relation(fields: [storeTourId], references: [id], onDelete: Cascade)
+
+  value String
+
+  @@index([storeTourId])
+  @@map("store_tour_highlights")
 }
 
 // ============================================
@@ -364,7 +483,7 @@ model BusinessProfileTag {
   businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
 
   tagId String
-  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([businessProfileId, tagId])
   @@map("business_profile_tags")
@@ -391,11 +510,125 @@ model OperatingHours {
   businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
 
   day       DayOfWeek
-  openTime  String    // "09:00" — HH:mm, UTC
-  closeTime String    // "17:00" — HH:mm, UTC
+  openTime  String // "09:00" — HH:mm, UTC
+  closeTime String // "17:00" — HH:mm, UTC
   isClosed  Boolean   @default(false) // explicit closure override for this day
 
   @@unique([businessProfileId, day])
   @@index([businessProfileId])
   @@map("operating_hours")
+}
+
+// ============================================
+// Inquiry
+// ============================================
+
+enum InquiryStatus {
+  UNREAD
+  READ
+  RESPONDED
+  CLOSED
+}
+
+model Inquiry {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("UserInquiries", fields: [userId], references: [id], onDelete: Cascade)
+
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  subject String?
+  status  InquiryStatus @default(UNREAD)
+
+  messages InquiryMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessProfileId])
+  @@index([userId])
+  @@index([status])
+  @@map("inquiries")
+}
+
+model InquiryMessage {
+  id        String  @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id])
+
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([inquiryId])
+  @@index([senderId])
+  @@map("inquiry_messages")
+}
+
+// ============================================
+// Saves / Favorites
+// ============================================
+
+model SavedListing {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("SavedListings", fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation("SavedByUsers", fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
+  @@map("saved_listings")
+}
+
+model SavedBusiness {
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation("SavedBusinesses", fields: [userId], references: [id], onDelete: Cascade)
+  businessProfileId String
+  businessProfile   BusinessProfile @relation("SavedByUsers", fields: [businessProfileId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+
+  @@unique([userId, businessProfileId])
+  @@index([userId])
+  @@index([businessProfileId])
+  @@map("saved_businesses")
+}
+
+// ============================================
+// Analytics
+// ============================================
+
+enum AnalyticsEventType {
+  PROFILE_VIEW
+  LISTING_VIEW
+  PHONE_CLICK
+  WEBSITE_CLICK
+  DIRECTIONS_CLICK
+}
+
+model AnalyticsEvent {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  eventType AnalyticsEventType
+  listingId String? // If the event is specific to a listing
+  userId    String? // Track authenticated users (optional)
+
+  createdAt DateTime @default(now())
+
+  @@index([businessProfileId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics_events")
 }

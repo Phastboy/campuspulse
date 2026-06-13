@@ -26,10 +26,11 @@ export const SINGLETON_ROLES: ReadonlySet<MediaRole> = new Set([
   MediaRole.COVER,
 ]);
 
-/** Valid roles per resource type. */
-export const ROLES_BY_RESOURCE_TYPE: Record<string, ReadonlySet<MediaRole>> = {
-  BUSINESS_PROFILE: new Set([MediaRole.LOGO, MediaRole.BANNER, MediaRole.GALLERY]),
-  LISTING: new Set([MediaRole.COVER, MediaRole.GALLERY]),
+/** Valid roles per resource foreign key. */
+export const ROLES_BY_FK_NAME: Record<string, ReadonlySet<MediaRole>> = {
+  businessProfileId: new Set([MediaRole.LOGO, MediaRole.BANNER, MediaRole.GALLERY]),
+  listingId: new Set([MediaRole.COVER, MediaRole.GALLERY]),
+  storeTourId: new Set([MediaRole.GALLERY]),
   // Reviews only support raw gallery photos — no logo, banner, or cover slots.
-  REVIEW: new Set([MediaRole.GALLERY]),
+  reviewId: new Set([MediaRole.GALLERY]),
 };

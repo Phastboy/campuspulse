@@ -54,6 +54,8 @@ export HURL_run_id="${TEST_RUN_ID:-$(date +%s)}"
 REPORT_FLAGS=(
     --report-html  "$REPORTS_DIR/html"
     --report-junit "$REPORTS_DIR/junit.xml"
+    --file-root    "/"
+    --verbose
 )
 
 echo ""
@@ -86,6 +88,29 @@ run_test() {
     }
 }
 
+run_test_with_json() {
+    local label=$1
+    local file=$2
+    shift 2
+    echo "  ▶ $label (json capture)"
+    local json_output
+    json_output=$(hurl --color "${REPORT_FLAGS[@]}" --json "$file") || {
+        echo "  ❌ FAILED: $label"
+        echo "  📄 File:   $file"
+        exit 1
+    }
+    
+    # Export all requested variables
+    for var_name in "$@"; do
+        local captured_val
+        captured_val=$(echo "$json_output" | jq -r ".entries[].captures[]? | select(.name == \"$var_name\") | .value" | head -1)
+        export "HURL_$var_name=$captured_val"
+    done
+    
+    # Simple success message since we didn't use --test
+    echo "  ✅ SUCCESS: $label"
+}
+
 # ---------------------------------------------------------------------------
 # Phase 0: Register accounts (idempotent)
 # ---------------------------------------------------------------------------
@@ -97,23 +122,12 @@ run_test "Register accounts" "$ROOT/business-profile/00-setup.hurl"
 # ---------------------------------------------------------------------------
 echo ""
 echo "── Phase 1: Login ──────────────────────────"
-login_json=$(hurl --color "${REPORT_FLAGS[@]}" --json "$ROOT/business-profile/01-login.hurl")
-
-extract_capture() {
-    echo "$login_json" \
-        | jq -r --arg n "$1" '.entries[].captures[] | select(.name == $n) | .value' \
-        | head -1
-}
-
-HURL_owner_token=$(extract_capture "owner_token")
-HURL_reviewer_token=$(extract_capture "reviewer_token")
-HURL_intruder_token=$(extract_capture "intruder_token")
+run_test_with_json "Login" "$ROOT/business-profile/01-login.hurl" "owner_token" "reviewer_token" "intruder_token"
 
 [[ -z "$HURL_owner_token"    || "$HURL_owner_token"    == "null" ]] && { echo "❌ Failed to capture owner_token";    exit 1; }
 [[ -z "$HURL_reviewer_token" || "$HURL_reviewer_token" == "null" ]] && { echo "❌ Failed to capture reviewer_token"; exit 1; }
 [[ -z "$HURL_intruder_token" || "$HURL_intruder_token" == "null" ]] && { echo "❌ Failed to capture intruder_token"; exit 1; }
 
-export HURL_owner_token HURL_reviewer_token HURL_intruder_token
 echo "  🔑 Tokens captured and exported (owner, reviewer, intruder)"
 
 # ---------------------------------------------------------------------------
@@ -142,8 +156,8 @@ fi
 if run_suite "listing"; then
     echo ""
     echo "── Suite: Listing ──────────────────────────"
-    run_test "LST 00 Setup"       "$ROOT/listing/00-setup.hurl"
-    run_test "LST 01 Create"      "$ROOT/listing/01-create.hurl"
+    run_test_with_json "LST 00 Setup"  "$ROOT/listing/00-setup.hurl" "biz_id"
+    run_test_with_json "LST 01 Create" "$ROOT/listing/01-create.hurl" "listing_id" "listing_slug"
     run_test "LST 02 Update"      "$ROOT/listing/02-update.hurl"
     run_test "LST 03 Status"      "$ROOT/listing/03-status.hurl"
     run_test "LST 04 Discover"    "$ROOT/listing/04-discover.hurl"
@@ -158,8 +172,8 @@ fi
 if run_suite "review"; then
     echo ""
     echo "── Suite: Review ───────────────────────────"
-    run_test "REV 00 Setup"  "$ROOT/review/00-setup.hurl"
-    run_test "REV 01 Create" "$ROOT/review/01-create.hurl"
+    run_test_with_json "REV 00 Setup"  "$ROOT/review/00-setup.hurl" "review_listing_id"
+    run_test_with_json "REV 01 Create" "$ROOT/review/01-create.hurl" "review_id"
     run_test "REV 02 Update" "$ROOT/review/02-update.hurl"
     run_test "REV 03 List"   "$ROOT/review/03-list.hurl"
     run_test "REV 04 Media"  "$ROOT/review/04-media.hurl"
@@ -177,6 +191,34 @@ if run_suite "category"; then
         echo "     Grant ADMIN role to a user and export their token as HURL_admin_token."
     else
         run_test "CAT 01 Full" "$ROOT/category/01-full.hurl"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 6: Tag Suite (requires admin token)
+# ---------------------------------------------------------------------------
+if run_suite "tag"; then
+    echo ""
+    echo "── Suite: Tag ──────────────────────────────"
+    if [[ -z "${HURL_admin_token:-}" ]]; then
+        echo "  ⚠️  HURL_admin_token not set — skipping tag suite."
+    else
+        run_test "TAG 01 Full" "$ROOT/tag/01-full.hurl"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 7: Store Tour Suite (requires admin token)
+# ---------------------------------------------------------------------------
+if run_suite "store-tour"; then
+    echo ""
+    echo "── Suite: Store Tour ───────────────────────"
+    if [[ -z "${HURL_admin_token:-}" ]]; then
+        echo "  ⚠️  HURL_admin_token not set — skipping store tour suite."
+    else
+        run_test_with_json "TR 00 Setup" "$ROOT/store-tour/00-setup.hurl" "tour_biz_id"
+        
+        run_test "TR 01 Full"  "$ROOT/store-tour/01-full.hurl"
     fi
 fi
 

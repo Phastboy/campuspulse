@@ -36,7 +36,7 @@ export class BackblazeStorageProvider implements StorageProvider {
       await upload.done();
 
       const baseUrl =
-        this.config.publicUrlBase || `${this.config.endpoint}/file/${this.config.bucketName}`;
+        this.config.publicUrlBase ?? `${this.config.endpoint}/file/${this.config.bucketName}`;
 
       return {
         url: `${baseUrl}/${key}`,

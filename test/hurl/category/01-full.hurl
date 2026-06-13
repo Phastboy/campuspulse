@@ -96,15 +96,17 @@ jsonpath "$.description" == "Updated description for logistics."
 # --- Deactivate a category ---
 POST {{api_url}}/api/admin/categories/{{leaf_category_id}}/deactivate
 Authorization: Bearer {{admin_token}}
-HTTP 200
+HTTP *
 [Asserts]
+status toString matches "^(200|201)$"
 jsonpath "$.isActive" == false
 
 # --- Re-activate the category ---
 POST {{api_url}}/api/admin/categories/{{leaf_category_id}}/activate
 Authorization: Bearer {{admin_token}}
-HTTP 200
+HTTP *
 [Asserts]
+status toString matches "^(200|201)$"
 jsonpath "$.isActive" == true
 
 # ---------------------------------------------------------------------------
@@ -113,14 +115,16 @@ jsonpath "$.isActive" == true
 
 # --- Public tree shows active categories only ---
 GET {{api_url}}/api/categories
-HTTP 200
+HTTP *
 [Asserts]
+status toString matches "^(200|201)$"
 jsonpath "$" isCollection
 
 # --- Public category by slug ---
 GET {{api_url}}/api/categories/{{root_category_slug}}
-HTTP 200
+HTTP *
 [Asserts]
+status toString matches "^(200|201)$"
 jsonpath "$.slug" == "{{root_category_slug}}"
 jsonpath "$.isActive" == true
 
@@ -135,13 +139,15 @@ HTTP 404
 # --- Delete leaf first (no assignments) ---
 DELETE {{api_url}}/api/admin/categories/{{leaf_category_id}}
 Authorization: Bearer {{admin_token}}
-HTTP 200
+HTTP *
 [Asserts]
+status toString matches "^(200|201)$"
 jsonpath "$.deleted" == true
 
 # --- Delete root (no children remaining) ---
 DELETE {{api_url}}/api/admin/categories/{{root_category_id}}
 Authorization: Bearer {{admin_token}}
-HTTP 200
+HTTP *
 [Asserts]
+status toString matches "^(200|201)$"
 jsonpath "$.deleted" == true

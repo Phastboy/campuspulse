@@ -8,20 +8,18 @@ import {
   Body,
   Query,
   NotFoundException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { CurrentIdentity } from '@odysseon/whoami-adapter-nestjs';
+import { CurrentIdentity, Public } from '@odysseon/whoami-adapter-nestjs';
 import type { RequestIdentity } from '@odysseon/whoami-adapter-nestjs';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { CreateReviewUseCase } from '../../application/use-cases/create-review.use-case.js';
 import { UpdateReviewUseCase } from '../../application/use-cases/update-review.use-case.js';
 import { DeleteReviewUseCase } from '../../application/use-cases/delete-review.use-case.js';
-import { GetBusinessReviewsUseCase } from '../../application/use-cases/get-business-reviews.use-case.js';
-import {
-  CreateReviewDto,
-  UpdateReviewDto,
-  GetBusinessReviewsQueryDto,
-} from '../dto/request.dto.js';
+import { GetListingReviewsUseCase } from '../../application/use-cases/get-listing-reviews.use-case.js';
+import { CreateReviewDto, UpdateReviewDto, GetListingReviewsQueryDto } from '../dto/request.dto.js';
 import { ReviewResponseDto, ReviewPageDto } from '../dto/response.dto.js';
 
 @ApiTags('Reviews')
@@ -32,42 +30,43 @@ export class ReviewController {
     private readonly createReview: CreateReviewUseCase,
     private readonly updateReview: UpdateReviewUseCase,
     private readonly deleteReview: DeleteReviewUseCase,
-    private readonly getBusinessReviews: GetBusinessReviewsUseCase,
+    private readonly getListingReviews: GetListingReviewsUseCase,
   ) {}
 
   /**
-   * POST /business-profiles/:businessProfileId/reviews
-   * Submit a review for a business profile.
+   * POST /listings/:listingId/reviews
+   * Submit a review for a listing.
    */
-  @Post('business-profiles/:businessProfileId/reviews')
+  @Post('listings/:listingId/reviews')
   async create(
     @CurrentIdentity() identity: RequestIdentity,
-    @Param('businessProfileId') businessProfileId: string,
+    @Param('listingId') listingId: string,
     @Body() dto: CreateReviewDto,
   ): Promise<ReviewResponseDto> {
     const reviewerId = await this.resolveUserId(identity.accountId);
     const review = await this.createReview.execute({
-      businessProfileId,
+      listingId,
       reviewerId,
       rating: dto.rating,
-      comment: dto.comment,
+      ...(dto.comment !== undefined && { comment: dto.comment }),
     });
     return ReviewResponseDto.from(review);
   }
 
   /**
-   * GET /business-profiles/:businessProfileId/reviews
+   * GET /listings/:listingId/reviews
    * Public — paginated list of reviews with embedded media.
    */
-  @Get('business-profiles/:businessProfileId/reviews')
-  async listByBusiness(
-    @Param('businessProfileId') businessProfileId: string,
-    @Query() query: GetBusinessReviewsQueryDto,
+  @Public()
+  @Get('listings/:listingId/reviews')
+  async listByListing(
+    @Param('listingId') listingId: string,
+    @Query() query: GetListingReviewsQueryDto,
   ): Promise<ReviewPageDto> {
-    const page = await this.getBusinessReviews.execute({
-      businessProfileId,
-      cursor: query.cursor,
-      limit: query.limit,
+    const page = await this.getListingReviews.execute({
+      listingId,
+      ...(query.cursor !== undefined && { cursor: query.cursor }),
+      ...(query.limit !== undefined && { limit: query.limit }),
     });
     return ReviewPageDto.from(page);
   }
@@ -84,8 +83,8 @@ export class ReviewController {
   ): Promise<ReviewResponseDto> {
     const requesterId = await this.resolveUserId(identity.accountId);
     const review = await this.updateReview.execute(id, requesterId, {
-      rating: dto.rating,
-      comment: dto.comment,
+      ...(dto.rating !== undefined && { rating: dto.rating }),
+      ...(dto.comment !== undefined && { comment: dto.comment }),
     });
     return ReviewResponseDto.from(review);
   }
@@ -95,6 +94,7 @@ export class ReviewController {
    * Reviewer or ADMIN can delete.
    */
   @Delete('reviews/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @CurrentIdentity() identity: RequestIdentity,
     @Param('id') id: string,

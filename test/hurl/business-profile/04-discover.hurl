@@ -7,7 +7,11 @@ Content-Type: application/json
 {
   "name": "Discovery Test Shop {{run_id}}",
   "description": "A shop for discovery testing.",
-  "location": "Port Harcourt, Nigeria"
+  "location": "Port Harcourt, Nigeria",
+  "businessType": "PHYSICAL",
+  "phoneNumber": "+2348000000000",
+  "whatsapp": "+2348000000000",
+  "email": "test@business.com"
 }
 HTTP 201
 [Captures]
@@ -59,7 +63,11 @@ POST {{api_url}}/api/businesses
 Authorization: Bearer {{owner_token}}
 Content-Type: application/json
 {
-  "name": "Private Biz {{run_id}}"
+  "name": "Private Biz {{run_id}}",
+  "businessType": "PHYSICAL",
+  "phoneNumber": "+2348000000000",
+  "whatsapp": "+2348000000000",
+  "email": "test@business.com"
 }
 HTTP 201
 [Captures]

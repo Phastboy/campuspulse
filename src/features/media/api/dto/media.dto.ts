@@ -136,3 +136,27 @@ export class ReviewMediaDto {
     return new ReviewMediaDto(gallery.map((item) => MediaResponseDto.from(item)));
   }
 }
+
+// ---------------------------------------------------------------------------
+// Response — grouped by role (StoreTour — gallery only)
+// ---------------------------------------------------------------------------
+
+export class StoreTourMediaDto {
+  /**
+   * Raw, user-uploaded photos and videos attached to this store tour.
+   * Gallery-ordered. No logo/banner/cover slots.
+   */
+  gallery: MediaResponseDto[];
+
+  private constructor(gallery: MediaResponseDto[]) {
+    this.gallery = gallery;
+  }
+
+  static from(items: Media[]): StoreTourMediaDto {
+    const gallery = items
+      .filter((m) => m.role === MediaRole.GALLERY)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    return new StoreTourMediaDto(gallery.map((item) => MediaResponseDto.from(item)));
+  }
+}

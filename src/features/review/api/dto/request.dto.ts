@@ -33,7 +33,7 @@ export class UpdateReviewDto {
   comment?: string | null;
 }
 
-export class GetBusinessReviewsQueryDto {
+export class GetListingReviewsQueryDto {
   @ApiPropertyOptional({ description: 'Pagination cursor (last received review ID)' })
   @IsOptional()
   @IsString()

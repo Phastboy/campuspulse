@@ -19,6 +19,7 @@ export interface Category {
    * value → leaf node (directly taggable by businesses/listings)
    */
   readonly parentId: string | null;
+  readonly parent?: Category | null;
 
   /** Display sort order within siblings. */
   readonly order: number;

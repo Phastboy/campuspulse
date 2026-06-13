@@ -1,10 +1,11 @@
-import { MediaResourceType } from './media-resource-type.enum.js';
 import { MediaRole } from './media-role.enum.js';
 import { MediaType } from './media-type.enum.js';
 
 export interface AddMediaInput {
-  readonly resourceType: MediaResourceType;
-  readonly resourceId: string;
+  readonly businessProfileId?: string;
+  readonly listingId?: string;
+  readonly storeTourId?: string;
+  readonly reviewId?: string;
   readonly url: string;
   readonly fileId: string;
   readonly mediaType: MediaType;
@@ -20,8 +21,10 @@ export interface ReorderMediaInput {
 
 export interface MediaView {
   readonly id: string;
-  readonly resourceType: MediaResourceType;
-  readonly resourceId: string;
+  readonly businessProfileId: string | null;
+  readonly listingId: string | null;
+  readonly storeTourId: string | null;
+  readonly reviewId: string | null;
   readonly url: string;
   readonly mediaType: MediaType;
   readonly role: MediaRole;

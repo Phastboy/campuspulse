@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service.js';
-import { IMediaRepository } from '../domain/ports/media.repository.port.js';
+import { IMediaRepository, MediaOwnerKey } from '../domain/ports/media.repository.port.js';
 import { Media } from '../domain/types/media.entity.js';
-import { MediaResourceType } from '../domain/types/media-resource-type.enum.js';
 import { MediaRole } from '../domain/types/media-role.enum.js';
 import { AddMediaInput, ReorderMediaInput } from '../domain/types/media.types.js';
 import { Media as PrismaMedia } from '../../../../generated/prisma/client.js';
@@ -10,8 +9,10 @@ import { Media as PrismaMedia } from '../../../../generated/prisma/client.js';
 function toDomain(raw: PrismaMedia): Media {
   return {
     id: raw.id,
-    resourceType: raw.resourceType,
-    resourceId: raw.resourceId,
+    businessProfileId: raw.businessProfileId,
+    listingId: raw.listingId,
+    storeTourId: raw.storeTourId,
+    reviewId: raw.reviewId,
     url: raw.url,
     fileId: raw.fileId,
     mediaType: raw.mediaType,
@@ -36,21 +37,17 @@ export class PrismaMediaRepository extends IMediaRepository {
     return toDomain(raw);
   }
 
-  async findByResource(resourceType: MediaResourceType, resourceId: string): Promise<Media[]> {
+  async findByOwner(ownerKey: MediaOwnerKey, ownerId: string): Promise<Media[]> {
     const rows = await this.prisma.media.findMany({
-      where: { resourceType, resourceId },
+      where: { [ownerKey]: ownerId },
       orderBy: [{ role: 'asc' }, { order: 'asc' }],
     });
     return rows.map(toDomain);
   }
 
-  async findByRole(
-    resourceType: MediaResourceType,
-    resourceId: string,
-    role: MediaRole,
-  ): Promise<Media[]> {
+  async findByRole(ownerKey: MediaOwnerKey, ownerId: string, role: MediaRole): Promise<Media[]> {
     const rows = await this.prisma.media.findMany({
-      where: { resourceType, resourceId, role },
+      where: { [ownerKey]: ownerId, role },
       orderBy: { order: 'asc' },
     });
     return rows.map(toDomain);
@@ -62,8 +59,8 @@ export class PrismaMediaRepository extends IMediaRepository {
   }
 
   async reorder(
-    resourceType: MediaResourceType,
-    resourceId: string,
+    ownerKey: MediaOwnerKey,
+    ownerId: string,
     input: ReorderMediaInput,
   ): Promise<Media[]> {
     // Only reorders GALLERY items — singleton roles are excluded at the use case level
@@ -76,17 +73,17 @@ export class PrismaMediaRepository extends IMediaRepository {
       ),
     );
 
-    return this.findByRole(resourceType, resourceId, MediaRole.GALLERY);
+    return this.findByRole(ownerKey, ownerId, MediaRole.GALLERY);
   }
 
   async delete(id: string): Promise<void> {
     await this.prisma.media.delete({ where: { id } });
   }
 
-  async renormalize(resourceType: MediaResourceType, resourceId: string): Promise<void> {
+  async renormalize(ownerKey: MediaOwnerKey, ownerId: string): Promise<void> {
     // Only renormalizes GALLERY items — singletons have no order to renormalize
     const items = await this.prisma.media.findMany({
-      where: { resourceType, resourceId, role: MediaRole.GALLERY },
+      where: { [ownerKey]: ownerId, role: MediaRole.GALLERY },
       orderBy: { order: 'asc' },
       select: { id: true },
     });
@@ -101,15 +98,11 @@ export class PrismaMediaRepository extends IMediaRepository {
     );
   }
 
-  async countByResource(resourceType: MediaResourceType, resourceId: string): Promise<number> {
-    return this.prisma.media.count({ where: { resourceType, resourceId } });
+  async countByOwner(ownerKey: MediaOwnerKey, ownerId: string): Promise<number> {
+    return this.prisma.media.count({ where: { [ownerKey]: ownerId } });
   }
 
-  async countByRole(
-    resourceType: MediaResourceType,
-    resourceId: string,
-    role: MediaRole,
-  ): Promise<number> {
-    return this.prisma.media.count({ where: { resourceType, resourceId, role } });
+  async countByRole(ownerKey: MediaOwnerKey, ownerId: string, role: MediaRole): Promise<number> {
+    return this.prisma.media.count({ where: { [ownerKey]: ownerId, role } });
   }
 }

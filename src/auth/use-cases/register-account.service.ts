@@ -3,6 +3,7 @@ import { moduleToken } from '@odysseon/whoami-adapter-nestjs';
 import type { PasswordMethods } from '@odysseon/whoami-core/password';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { RegisterDto } from '../dto/index.js';
+import { MailQueueService } from '../../mail/mail-queue.service.js';
 
 @Injectable()
 export class RegisterAccountUseCase {
@@ -12,6 +13,7 @@ export class RegisterAccountUseCase {
     @Inject(moduleToken('password'))
     private readonly passwordAuth: PasswordMethods,
     private readonly prisma: PrismaService,
+    private readonly mailQueueService: MailQueueService,
   ) {}
 
   async execute(dto: RegisterDto) {
@@ -27,6 +29,17 @@ export class RegisterAccountUseCase {
         data: {
           accountId: account.id,
           name: dto.name,
+        },
+      });
+
+      // Queue welcome email asynchronously
+      await this.mailQueueService.enqueueMail({
+        to: account.email,
+        subject: 'Welcome to Pulse!',
+        template: 'welcome',
+        context: {
+          name: user.name,
+          action_url: 'https://pulse.app/login', // Adjust the URL as needed
         },
       });
 

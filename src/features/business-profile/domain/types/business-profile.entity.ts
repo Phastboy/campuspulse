@@ -1,4 +1,5 @@
 import { VerificationStatus } from './verification-status.enum.js';
+import { BusinessType } from '../../../../../generated/prisma/client.js';
 
 /**
  * Represents a public commercial storefront identity owned by a user.
@@ -20,9 +21,14 @@ export interface BusinessProfile {
   readonly isPublic: boolean;
   readonly verificationStatus: VerificationStatus;
   readonly description: string | null;
-  readonly phoneNumber: string | null;
-  readonly whatsapp: string | null;
-  readonly email: string | null;
+  readonly businessType: BusinessType;
+  readonly websiteUrl: string | null;
+  readonly isEmailVerified: boolean;
+  readonly isPhoneVerified: boolean;
+  readonly phoneNumber: string;
+  readonly whatsapp: string;
+  readonly email: string;
+  readonly locationId: string | null;
   readonly location: string | null;
   readonly categoryId: string | null;
   readonly createdAt: Date;

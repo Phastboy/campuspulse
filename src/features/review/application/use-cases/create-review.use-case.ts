@@ -23,29 +23,29 @@ export class CreateReviewUseCase {
       throw new BadRequestException('Rating must be an integer between 1 and 5.');
     }
 
-    // 2. Ensure the business profile exists
-    const business = await this.prisma.businessProfile.findUnique({
-      where: { id: input.businessProfileId },
+    // 2. Ensure the listing exists
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: input.listingId },
       select: { id: true },
     });
-    if (!business) {
-      throw new NotFoundException('Business profile not found.');
+    if (!listing) {
+      throw new NotFoundException('Listing not found.');
     }
 
-    // 3. Enforce one-review-per-business-per-user
-    const alreadyReviewed = await this.reviewRepo.existsByBusinessAndReviewer(
-      input.businessProfileId,
+    // 3. Enforce one-review-per-listing-per-user
+    const alreadyReviewed = await this.reviewRepo.existsByListingAndReviewer(
+      input.listingId,
       input.reviewerId,
     );
     if (alreadyReviewed) {
-      throw new ConflictException('You have already submitted a review for this business.');
+      throw new ConflictException('You have already submitted a review for this listing.');
     }
 
     try {
       return await this.reviewRepo.create(input);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('You have already submitted a review for this business.');
+        throw new ConflictException('You have already submitted a review for this listing.');
       }
       throw error;
     }

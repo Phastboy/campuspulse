@@ -46,15 +46,17 @@ export class ListingController {
     const listing = await this.createListing.execute({
       businessProfileId,
       title: dto.title,
-      description: dto.description,
-      price: dto.price
-        ? {
-            minPrice: dto.price.minPrice,
-            maxPrice: dto.price.maxPrice,
-            currency: dto.price.currency,
-            isNegotiable: dto.price.isNegotiable,
-          }
-        : undefined,
+      ...(dto.description !== undefined && { description: dto.description }),
+      categoryId: dto.categoryId,
+      ...(dto.attributes !== undefined && { attributes: dto.attributes }),
+      ...(dto.price && {
+        price: {
+          ...(dto.price.minPrice !== undefined && { minPrice: dto.price.minPrice }),
+          ...(dto.price.maxPrice !== undefined && { maxPrice: dto.price.maxPrice }),
+          ...(dto.price.currencyCode !== undefined && { currencyCode: dto.price.currencyCode }),
+          isNegotiable: dto.price.isNegotiable,
+        },
+      }),
     });
 
     return ListingResponseDto.from(listing);
@@ -69,16 +71,18 @@ export class ListingController {
     const userId = await this.resolveUserId(identity.accountId);
 
     const listing = await this.updateListing.execute(id, userId, {
-      title: dto.title,
-      description: dto.description,
-      price: dto.price
-        ? {
-            minPrice: dto.price.minPrice,
-            maxPrice: dto.price.maxPrice,
-            currency: dto.price.currency,
-            isNegotiable: dto.price.isNegotiable,
-          }
-        : undefined,
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+      ...(dto.attributes !== undefined && { attributes: dto.attributes }),
+      ...(dto.price && {
+        price: {
+          ...(dto.price.minPrice !== undefined && { minPrice: dto.price.minPrice }),
+          ...(dto.price.maxPrice !== undefined && { maxPrice: dto.price.maxPrice }),
+          ...(dto.price.currencyCode !== undefined && { currencyCode: dto.price.currencyCode }),
+          isNegotiable: dto.price.isNegotiable,
+        },
+      }),
     });
 
     return ListingResponseDto.from(listing);

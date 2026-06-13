@@ -15,7 +15,7 @@ Authorization: Bearer {{reviewer_token}}
 HTTP 204
 
 # --- Review is gone from public listing ---
-GET {{api_url}}/api/business-profiles/{{review_biz_id}}/reviews
+GET {{api_url}}/api/listings/{{review_listing_id}}/reviews
 HTTP 200
 [Asserts]
 jsonpath "$.items" count == 0

@@ -27,7 +27,7 @@ export class DeleteReviewUseCase {
 
     // Fetch all media attached to this review for storage cleanup
     const mediaItems = await this.prisma.media.findMany({
-      where: { resourceType: 'REVIEW', resourceId: id },
+      where: { reviewId: id },
       select: { fileId: true },
     });
 
